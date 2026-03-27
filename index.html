@@ -1047,30 +1047,27 @@ async function init() {
 
   dbg('Iniciando app...', '#e8c97a');
 
-  try {
-    dbg('Obteniendo sesión...');
-    const { data: { session }, error: sessionError } = await sb.auth.getSession();
-    if (sessionError) { dbg('ERROR sesión: ' + sessionError.message, '#eb5757'); return; }
+  let appStarted = false;
 
-    if (session) {
-      dbg('Sesión encontrada: ' + session.user.email, '#6fcf97');
+  sb.auth.onAuthStateChange(async (event, session) => {
+    dbg('Auth event: ' + event, '#56b4e9');
+    if (session && (event === 'SIGNED_IN' || event === 'INITIAL_SESSION') && !appStarted) {
+      appStarted = true;
       await enterApp(session.user);
-    } else {
-      dbg('Sin sesión — mostrando login', '#9a9690');
+    }
+    if (event === 'SIGNED_OUT') {
+      appStarted = false;
+      document.getElementById('screenApp').style.display = 'none';
       document.getElementById('screenAuth').style.display = 'flex';
     }
+  });
 
-    sb.auth.onAuthStateChange(async (event, session) => {
-      dbg('Auth event: ' + event, '#56b4e9');
-      if (session && event === 'SIGNED_IN') await enterApp(session.user);
-      if (event === 'SIGNED_OUT') {
-        document.getElementById('screenApp').style.display = 'none';
-        document.getElementById('screenAuth').style.display = 'flex';
-      }
-    });
-  } catch(err) {
-    dbg('ERROR CRÍTICO: ' + err.message, '#eb5757');
-  }
+  setTimeout(() => {
+    if (!appStarted) {
+      dbg('Sin sesion activa, mostrando login', '#9a9690');
+      document.getElementById('screenAuth').style.display = 'flex';
+    }
+  }, 3000);
 }
 
 init();
