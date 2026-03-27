@@ -585,24 +585,41 @@ async function enterApp(user) {
   document.getElementById('screenApp').style.display = '';
   document.getElementById('userEmail').textContent = user.email;
   showView('loading');
-  await loadAllData();
-  renderSidebar();
-  const activos = cache.departamentos.filter(d => d.activo !== false);
-  if (activos.length > 0) selectDept(activos[0].id);
-  else if (cache.departamentos.length > 0) showOverview();
-  else showView('empty');
+  try {
+    await loadAllData();
+    renderSidebar();
+    const activos = cache.departamentos.filter(d => d.activo !== false);
+    if (activos.length > 0) selectDept(activos[0].id);
+    else if (cache.departamentos.length > 0) showOverview();
+    else showView('empty');
+  } catch(err) {
+    console.error('Error cargando datos:', err);
+    showView('empty');
+    document.getElementById('viewEmpty').innerHTML = `
+      <div style="display:flex;align-items:center;justify-content:center;min-height:60vh">
+        <div class="empty-state">
+          <div class="empty-icon">⚠</div>
+          <div style="margin-bottom:8px;color:var(--red)">Error al cargar los datos</div>
+          <div style="font-size:12px;margin-bottom:16px;color:var(--text3)">${err.message || 'Error desconocido'}</div>
+          <button class="btn btn-ghost" onclick="location.reload()">↺ Reintentar</button>
+        </div>
+      </div>`;
+  }
 }
 
 // ── DATA LOADING ──
 async function loadAllData() {
-  const [{ data: deptos }, { data: ingresos }, { data: egresos }] = await Promise.all([
+  const [deptRes, ingRes, egrRes] = await Promise.all([
     sb.from('departamentos').select('*').order('creado_en'),
     sb.from('ingresos').select('*').order('fecha', {ascending:false}),
     sb.from('egresos').select('*').order('fecha', {ascending:false}),
   ]);
-  cache.departamentos = deptos || [];
-  cache.ingresos      = (ingresos || []).map(i => ({...i, deptId: i.dept_id}));
-  cache.egresos       = (egresos  || []).map(e => ({...e, deptId: e.dept_id}));
+  if (deptRes.error) throw new Error('Tabla departamentos: ' + deptRes.error.message);
+  if (ingRes.error)  throw new Error('Tabla ingresos: '      + ingRes.error.message);
+  if (egrRes.error)  throw new Error('Tabla egresos: '       + egrRes.error.message);
+  cache.departamentos = deptRes.data || [];
+  cache.ingresos      = (ingRes.data  || []).map(i => ({...i, deptId: i.dept_id}));
+  cache.egresos       = (egrRes.data  || []).map(e => ({...e, deptId: e.dept_id}));
 }
 
 // ── VIEWS ──
