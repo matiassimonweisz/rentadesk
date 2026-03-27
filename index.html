@@ -567,32 +567,35 @@ async function doLogout() {
 
 
 async function enterApp(user) {
+  const dbg = window.__dbg || ((m,c)=>console.log(m));
   currentUser = user;
+  dbg('enterApp: ' + user.email, '#6fcf97');
   document.getElementById('screenAuth').style.display = 'none';
   document.getElementById('screenApp').style.display = '';
   document.getElementById('userEmail').textContent = user.email;
   showView('loading');
   try {
+    dbg('Cargando datos de Supabase...', '#e8c97a');
     await loadAllData();
+    dbg('Datos OK — deptos: ' + cache.departamentos.length, '#6fcf97');
     renderSidebar();
     const activos = cache.departamentos.filter(d => d.activo !== false);
-    if (activos.length > 0) selectDept(activos[0].id);
-    else if (cache.departamentos.length > 0) showOverview();
-    else showView('empty');
+    if (activos.length > 0) { dbg('Abriendo depto: ' + activos[0].nombre, '#6fcf97'); selectDept(activos[0].id); }
+    else { dbg('Sin deptos, mostrando pantalla vacia', '#9a9690'); showView('empty'); }
   } catch(err) {
-    console.error('Error cargando datos:', err);
+    dbg('ERROR en enterApp: ' + err.message, '#eb5757');
     showView('empty');
     document.getElementById('viewEmpty').innerHTML = `
       <div style="display:flex;align-items:center;justify-content:center;min-height:60vh">
         <div class="empty-state">
-          <div class="empty-icon">⚠</div>
-          <div style="margin-bottom:8px;color:var(--red)">Error al cargar los datos</div>
-          <div style="font-size:12px;margin-bottom:16px;color:var(--text3)">${err.message || 'Error desconocido'}</div>
-          <button class="btn btn-ghost" onclick="location.reload()">↺ Reintentar</button>
+          <div class="empty-icon">!</div>
+          <div style="margin-bottom:8px;color:var(--red)">Error: ${err.message}</div>
+          <button class="btn btn-ghost" onclick="location.reload()">Reintentar</button>
         </div>
       </div>`;
   }
 }
+
 
 // ── DATA LOADING ──
 async function loadAllData() {
@@ -1048,6 +1051,7 @@ async function init() {
   dbg('Iniciando app...', '#e8c97a');
 
   let appStarted = false;
+  window.__dbg = dbg;
 
   sb.auth.onAuthStateChange(async (event, session) => {
     dbg('Auth event: ' + event, '#56b4e9');
