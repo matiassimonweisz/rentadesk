@@ -565,19 +565,6 @@ async function doLogout() {
   document.getElementById('screenAuth').style.display = 'flex';
 }
 
-// ── INIT & SESSION ──
-async function init() {
-  const { data: { session } } = await sb.auth.getSession();
-  if (session) await enterApp(session.user);
-
-  sb.auth.onAuthStateChange(async (event, session) => {
-    if (session && event === 'SIGNED_IN') await enterApp(session.user);
-    if (event === 'SIGNED_OUT') {
-      document.getElementById('screenApp').style.display = 'none';
-      document.getElementById('screenAuth').style.display = 'flex';
-    }
-  });
-}
 
 async function enterApp(user) {
   currentUser = user;
@@ -1043,6 +1030,49 @@ function toggleSidebar(){ document.getElementById('sidebar').classList.toggle('o
 function closeSidebarMobile(){ if(window.innerWidth<=768) document.getElementById('sidebar').classList.remove('open') }
 
 // ── START ──
+async function init() {
+  const dbg = (msg, color='#9a9690') => {
+    let el = document.getElementById('__debug');
+    if (!el) {
+      el = document.createElement('div');
+      el.id = '__debug';
+      el.style.cssText = 'position:fixed;bottom:0;left:0;right:0;background:#111;border-top:1px solid #333;padding:12px 16px;font-family:monospace;font-size:12px;z-index:9999;max-height:200px;overflow-y:auto';
+      document.body.appendChild(el);
+    }
+    const line = document.createElement('div');
+    line.style.color = color;
+    line.textContent = '► ' + msg;
+    el.appendChild(line);
+  };
+
+  dbg('Iniciando app...', '#e8c97a');
+
+  try {
+    dbg('Obteniendo sesión...');
+    const { data: { session }, error: sessionError } = await sb.auth.getSession();
+    if (sessionError) { dbg('ERROR sesión: ' + sessionError.message, '#eb5757'); return; }
+
+    if (session) {
+      dbg('Sesión encontrada: ' + session.user.email, '#6fcf97');
+      await enterApp(session.user);
+    } else {
+      dbg('Sin sesión — mostrando login', '#9a9690');
+      document.getElementById('screenAuth').style.display = 'flex';
+    }
+
+    sb.auth.onAuthStateChange(async (event, session) => {
+      dbg('Auth event: ' + event, '#56b4e9');
+      if (session && event === 'SIGNED_IN') await enterApp(session.user);
+      if (event === 'SIGNED_OUT') {
+        document.getElementById('screenApp').style.display = 'none';
+        document.getElementById('screenAuth').style.display = 'flex';
+      }
+    });
+  } catch(err) {
+    dbg('ERROR CRÍTICO: ' + err.message, '#eb5757');
+  }
+}
+
 init();
 </script>
 </body>
