@@ -567,7 +567,7 @@ async function doLogout() {
 
 
 async function enterApp(user) {
-  const dbg = window.__dbg || ((m,c)=>console.log(m));
+  const dbg = window.__dbg || console.log;
   currentUser = user;
   dbg('enterApp: ' + user.email, '#6fcf97');
   document.getElementById('screenAuth').style.display = 'none';
@@ -575,26 +575,23 @@ async function enterApp(user) {
   document.getElementById('userEmail').textContent = user.email;
   showView('loading');
   try {
-    dbg('Cargando datos de Supabase...', '#e8c97a');
+    dbg('Cargando datos...', '#e8c97a');
     await loadAllData();
-    dbg('Datos OK — deptos: ' + cache.departamentos.length, '#6fcf97');
+    dbg('OK — deptos: ' + cache.departamentos.length, '#6fcf97');
     renderSidebar();
     const activos = cache.departamentos.filter(d => d.activo !== false);
-    if (activos.length > 0) { dbg('Abriendo depto: ' + activos[0].nombre, '#6fcf97'); selectDept(activos[0].id); }
-    else { dbg('Sin deptos, mostrando pantalla vacia', '#9a9690'); showView('empty'); }
+    if (activos.length > 0) {
+      selectDept(activos[0].id);
+    } else {
+      showView('empty');
+      dbg('Mostrando pantalla vacia con boton', '#6fcf97');
+    }
   } catch(err) {
-    dbg('ERROR en enterApp: ' + err.message, '#eb5757');
+    dbg('ERROR: ' + err.message, '#eb5757');
     showView('empty');
-    document.getElementById('viewEmpty').innerHTML = `
-      <div style="display:flex;align-items:center;justify-content:center;min-height:60vh">
-        <div class="empty-state">
-          <div class="empty-icon">!</div>
-          <div style="margin-bottom:8px;color:var(--red)">Error: ${err.message}</div>
-          <button class="btn btn-ghost" onclick="location.reload()">Reintentar</button>
-        </div>
-      </div>`;
   }
 }
+
 
 
 // ── DATA LOADING ──
@@ -1051,27 +1048,26 @@ async function init() {
   dbg('Iniciando app...', '#e8c97a');
 
   let appStarted = false;
-  window.__dbg = dbg;
 
   sb.auth.onAuthStateChange(async (event, session) => {
-    dbg('Auth event: ' + event, '#56b4e9');
-    if (session && (event === 'SIGNED_IN' || event === 'INITIAL_SESSION') && !appStarted) {
+    if (session && !appStarted && (event === 'SIGNED_IN' || event === 'INITIAL_SESSION' || event === 'TOKEN_REFRESHED')) {
       appStarted = true;
       await enterApp(session.user);
     }
     if (event === 'SIGNED_OUT') {
       appStarted = false;
+      cache = { departamentos: [], ingresos: [], egresos: [] };
       document.getElementById('screenApp').style.display = 'none';
       document.getElementById('screenAuth').style.display = 'flex';
     }
   });
 
+  // Mostrar login solo si despues de 4s no hubo sesion
   setTimeout(() => {
-    if (!appStarted) {
-      dbg('Sin sesion activa, mostrando login', '#9a9690');
+    if (!appStarted && document.getElementById('screenAuth').style.display !== 'flex') {
       document.getElementById('screenAuth').style.display = 'flex';
     }
-  }, 3000);
+  }, 4000);
 }
 
 init();
