@@ -1021,24 +1021,50 @@ function closeSidebarMobile(){ if(window.innerWidth<=768) document.getElementByI
 
 // ── START ──
 async function init() {
+  // Mostrar algo de inmediato mientras carga
+  document.getElementById('screenAuth').style.display = 'none';
+  document.getElementById('screenApp').style.display = 'none';
+
   let started = false;
-  sb.auth.onAuthStateChange(async (event, session) => {
-    if (session && !started && (event === 'SIGNED_IN' || event === 'INITIAL_SESSION' || event === 'TOKEN_REFRESHED')) {
-      started = true;
-      await enterApp(session.user);
-    }
-    if (event === 'SIGNED_OUT') {
-      started = false;
-      cache = { departamentos: [], ingresos: [], egresos: [] };
-      document.getElementById('screenApp').style.display = 'none';
-      document.getElementById('screenAuth').style.display = 'flex';
-    }
-  });
-  setTimeout(() => {
+
+  // Timeout de seguridad: si en 5s no pasó nada, mostrar login
+  const safetyTimeout = setTimeout(() => {
     if (!started) {
       document.getElementById('screenAuth').style.display = 'flex';
     }
-  }, 3000);
+  }, 5000);
+
+  try {
+    // Chequear sesión activa directamente
+    const { data: { session } } = await sb.auth.getSession();
+
+    if (session && !started) {
+      started = true;
+      clearTimeout(safetyTimeout);
+      await enterApp(session.user);
+    } else if (!session) {
+      clearTimeout(safetyTimeout);
+      document.getElementById('screenAuth').style.display = 'flex';
+    }
+
+    sb.auth.onAuthStateChange(async (event, session) => {
+      if (event === 'SIGNED_IN' && !started) {
+        started = true;
+        clearTimeout(safetyTimeout);
+        await enterApp(session.user);
+      }
+      if (event === 'SIGNED_OUT') {
+        started = false;
+        cache = { departamentos: [], ingresos: [], egresos: [] };
+        document.getElementById('screenApp').style.display = 'none';
+        document.getElementById('screenAuth').style.display = 'flex';
+      }
+    });
+  } catch(err) {
+    console.error('Init error:', err);
+    clearTimeout(safetyTimeout);
+    document.getElementById('screenAuth').style.display = 'flex';
+  }
 }
 
 init();
