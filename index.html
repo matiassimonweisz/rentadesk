@@ -570,18 +570,34 @@ async function doLogout() {
 async function enterApp(user) {
   currentUser = user;
   document.getElementById('screenAuth').style.display = 'none';
-  document.getElementById('screenApp').style.display = '';
+  document.getElementById('screenApp').style.display = 'block';
   document.getElementById('userEmail').textContent = user.email;
-  showView('loading');
+
+  // Mostrar loading visible
+  ['viewOverview','viewDept','viewEmpty','viewLoading'].forEach(id => {
+    const el = document.getElementById(id);
+    if (el) el.style.display = 'none';
+  });
+  const loadingEl = document.getElementById('viewLoading');
+  if (loadingEl) loadingEl.style.display = 'block';
+
   try {
     await loadAllData();
     renderSidebar();
     const activos = cache.departamentos.filter(d => d.activo !== false);
     if (activos.length > 0) selectDept(activos[0].id);
-    else showView('empty');
+    else {
+      ['viewOverview','viewDept','viewLoading'].forEach(id => {
+        const el = document.getElementById(id);
+        if (el) el.style.display = 'none';
+      });
+      document.getElementById('viewEmpty').style.display = 'block';
+    }
   } catch(err) {
-    console.error(err);
-    showView('empty');
+    console.error('enterApp error:', err);
+    document.getElementById('viewLoading').style.display = 'none';
+    document.getElementById('viewEmpty').style.display = 'block';
+    document.getElementById('viewEmpty').innerHTML = '<div style="padding:40px;color:#eb5757;font-size:14px">Error: ' + err.message + '<br><br><button onclick="location.reload()" style="margin-top:16px;padding:8px 16px;background:#333;color:#fff;border:none;border-radius:8px;cursor:pointer">Reintentar</button></div>';
   }
 }
 
