@@ -239,7 +239,6 @@ tbody td:last-child { text-align:right }
 .descuento-panel {
   background: var(--bg3); border: 1px solid var(--border2);
   border-radius: var(--radius); padding: 14px; margin-bottom: 16px;
-  display: none;
 }
 .descuento-tipo-row {
   display: flex; gap: 8px; margin-bottom: 12px;
@@ -492,7 +491,7 @@ tbody td:last-child { text-align:right }
       <input type="checkbox" id="ingresoAplicarDesc" onchange="toggleDescuento()">
       <label for="ingresoAplicarDesc">Aplicar descuento / comisión</label>
     </div>
-    <div class="descuento-panel" id="descuentoPanel">
+    <div class="descuento-panel" id="descuentoPanel" style="display:none">
       <div class="descuento-tipo-row">
         <button class="tipo-btn active" id="tipoPorcentaje" onclick="setTipoDesc('porcentaje')">% Porcentaje</button>
         <button class="tipo-btn" id="tipoFijo" onclick="setTipoDesc('fijo')">$ Monto fijo</button>
@@ -1064,7 +1063,7 @@ async function toggleDeptStatus() {
 // ── INGRESO MODAL: DESCUENTO UI ──
 function toggleDescuento() {
   const checked = document.getElementById('ingresoAplicarDesc').checked;
-  document.getElementById('descuentoPanel').style.display = checked ? '' : 'none';
+  document.getElementById('descuentoPanel').style.display = checked ? 'block' : 'none';
   if (!checked) document.getElementById('ingresoDescValor').value = '';
   updatePreview();
 }
@@ -1148,10 +1147,15 @@ function openIngresoModal(id) {
     document.getElementById('ingresoDescValor').value = '';
   }
 
-  // Sincronizar UI
+  // Sincronizar UI — el orden importa:
+  // 1. Primero limpiar disabled para que toggleDescuento pueda leer checked correctamente
+  // 2. Luego aplicar moneda (puede deshabilitar si es USD)
+  // 3. Luego mostrar/ocultar panel de descuento
+  document.getElementById('ingresoAplicarDesc').disabled = false;
+  document.getElementById('ingresoAplicarDesc').closest('.form-check').style.opacity = '1';
   setTipoDesc(currentTipoDesc);
-  toggleDescuento();
-  toggleMoneda();
+  toggleMoneda();      // puede deshabilitar el check si es USD
+  toggleDescuento();   // lee el estado final del check y muestra/oculta el panel
   openModal('modalIngreso');
 }
 
