@@ -16,6 +16,7 @@
   --green: #6fcf97; --green-bg: rgba(111,207,151,0.1);
   --red: #eb5757;   --red-bg: rgba(235,87,87,0.1);
   --blue: #56b4e9;  --blue-bg: rgba(86,180,233,0.1);
+  --purple: #bb86fc; --purple-bg: rgba(187,134,252,0.1);
   --radius: 10px; --radius-lg: 16px;
   --shadow: 0 4px 24px rgba(0,0,0,0.5);
 }
@@ -63,7 +64,6 @@ body{font-family:'Outfit',sans-serif;background:var(--bg);color:var(--text);min-
 
 /* ── APP LAYOUT ── */
 #screenApp { display:none }
-
 .app { display:flex; min-height:100vh }
 .sidebar {
   width:240px; background:var(--bg2); border-right:1px solid var(--border);
@@ -98,9 +98,9 @@ body{font-family:'Outfit',sans-serif;background:var(--bg);color:var(--text);min-
 .dept-item:hover { background:var(--bg3) }
 .dept-item.active { background:var(--accent-bg) }
 .dept-item.active .dept-name { color:var(--accent) }
+.dept-item.inactive .dept-name,.dept-item.inactive .dept-dot { opacity:0.4 }
 .dept-dot { width:8px;height:8px;border-radius:50%;background:var(--text3);flex-shrink:0 }
 .dept-item.active .dept-dot { background:var(--accent) }
-.dept-item.inactive .dept-name,.dept-item.inactive .dept-dot { opacity:0.4 }
 .dept-name { font-size:13px; font-weight:500; flex:1 }
 .add-dept-btn {
   display:flex; align-items:center; gap:8px; padding:9px 12px;
@@ -148,11 +148,13 @@ body{font-family:'Outfit',sans-serif;background:var(--bg);color:var(--text);min-
 .stat-card.red::before   { background:var(--red) }
 .stat-card.blue::before  { background:var(--blue) }
 .stat-card.gold::before  { background:var(--accent) }
+.stat-card.purple::before { background:var(--purple) }
 .stat-label { font-size:11px; text-transform:uppercase; letter-spacing:0.8px; color:var(--text3); margin-bottom:8px }
 .stat-value { font-family:'DM Serif Display',serif; font-size:26px; line-height:1 }
 .stat-value.green { color:var(--green) }
 .stat-value.red   { color:var(--red) }
 .stat-value.gold  { color:var(--accent) }
+.stat-value.purple { color:var(--purple) }
 .stat-sub { font-size:11px; color:var(--text3); margin-top:6px; font-family:'DM Mono',monospace }
 
 /* ── TABS ── */
@@ -184,9 +186,11 @@ tbody td:last-child { text-align:right }
 .td-amount.ingreso { color:var(--green) }
 .td-amount.egreso  { color:var(--red) }
 .badge { display:inline-flex; align-items:center; padding:3px 8px; border-radius:20px; font-size:11px; font-weight:500; white-space:nowrap }
-.badge-green { background:var(--green-bg); color:var(--green) }
-.badge-gold  { background:var(--accent-bg); color:var(--accent) }
-.badge-gray  { background:var(--bg4); color:var(--text3) }
+.badge-green  { background:var(--green-bg); color:var(--green) }
+.badge-gold   { background:var(--accent-bg); color:var(--accent) }
+.badge-gray   { background:var(--bg4); color:var(--text3) }
+.badge-purple { background:var(--purple-bg); color:var(--purple) }
+.badge-red    { background:var(--red-bg); color:var(--red) }
 .row-actions { display:flex; gap:4px; justify-content:flex-end }
 .icon-btn { background:none; border:none; cursor:pointer; color:var(--text3); padding:4px 6px; border-radius:6px; font-size:13px; transition:all 0.15s; line-height:1 }
 .icon-btn:hover { background:var(--bg4); color:var(--text) }
@@ -225,11 +229,31 @@ tbody td:last-child { text-align:right }
 }
 .form-input:focus,.form-select:focus,.form-textarea:focus { border-color:var(--accent2) }
 .form-row { display:grid; grid-template-columns:1fr 1fr; gap:12px }
-.form-check { display:flex; align-items:center; gap:8px; cursor:pointer; margin-bottom:16px }
+.form-check { display:flex; align-items:center; gap:8px; cursor:pointer; margin-bottom:12px }
 .form-check input { accent-color:var(--accent); width:15px; height:15px; cursor:pointer }
 .form-check label { font-size:13px; color:var(--text2); cursor:pointer }
 .modal-actions { display:flex; gap:8px; justify-content:flex-end; margin-top:24px; padding-top:16px; border-top:1px solid var(--border) }
 .preview-box { background:var(--bg3); border-radius:var(--radius); padding:12px; margin-bottom:16px; font-size:12px; color:var(--text2); font-family:'DM Mono',monospace; display:none }
+
+/* ── DESCUENTO TOGGLE ── */
+.descuento-panel {
+  background: var(--bg3); border: 1px solid var(--border2);
+  border-radius: var(--radius); padding: 14px; margin-bottom: 16px;
+  display: none;
+}
+.descuento-tipo-row {
+  display: flex; gap: 8px; margin-bottom: 12px;
+}
+.tipo-btn {
+  flex: 1; padding: 7px 12px; border-radius: 8px; border: 1px solid var(--border2);
+  background: none; color: var(--text3); font-family: 'Outfit', sans-serif;
+  font-size: 12px; font-weight: 500; cursor: pointer; transition: all 0.15s; text-align: center;
+}
+.tipo-btn.active { background: var(--accent-bg); color: var(--accent); border-color: var(--accent2); }
+.descuento-input-row { display: flex; align-items: center; gap: 10px; }
+.descuento-suffix {
+  font-size: 13px; color: var(--text2); white-space: nowrap; min-width: 24px;
+}
 
 /* ── RESUMEN ── */
 .mes-row { display:flex; justify-content:space-between; align-items:center; padding:10px 0; border-bottom:1px solid var(--border) }
@@ -251,6 +275,20 @@ tbody td:last-child { text-align:right }
 .overview-stat-label { font-size:10px; text-transform:uppercase; letter-spacing:0.5px; color:var(--text3) }
 .overview-stat-value { font-family:'DM Mono',monospace; font-size:14px; font-weight:500 }
 
+/* ── GANANCIAS ── */
+.ganancias-summary {
+  display: grid; grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
+  gap: 12px; margin-bottom: 24px;
+}
+.ganancia-detail-row {
+  display: flex; justify-content: space-between; align-items: center;
+  padding: 11px 0; border-bottom: 1px solid var(--border);
+}
+.ganancia-detail-row:last-child { border-bottom: none; }
+.ganancia-motivo { font-size: 13px; flex: 1; margin-right: 12px; }
+.ganancia-values { display: flex; gap: 14px; align-items: center; flex-shrink: 0; }
+.ganancia-val { font-family: 'DM Mono', monospace; font-size: 12px; }
+
 /* ── MOBILE ── */
 .hamburger { display:none }
 ::-webkit-scrollbar { width:4px }
@@ -265,6 +303,7 @@ tbody td:last-child { text-align:right }
   .form-row { grid-template-columns:1fr }
   .stats-grid { grid-template-columns:1fr 1fr }
   .overview-dept-stats { gap:10px; flex-wrap:wrap }
+  .tabs { overflow-x: auto; width: 100%; }
 }
 </style>
 </head>
@@ -275,15 +314,12 @@ tbody td:last-child { text-align:right }
   <div class="auth-card">
     <div class="auth-logo">RentaDesk</div>
     <div class="auth-tagline">Gestión de alquileres temporarios</div>
-
     <div class="auth-tabs">
       <button class="auth-tab active" id="tabLogin" onclick="setAuthTab('login')">Iniciar sesión</button>
       <button class="auth-tab" id="tabRegister" onclick="setAuthTab('register')">Registrarse</button>
     </div>
-
     <div class="auth-error" id="authError"></div>
     <div class="auth-success" id="authSuccess"></div>
-
     <div id="formLogin">
       <div class="form-group">
         <label class="form-label">Email</label>
@@ -293,11 +329,8 @@ tbody td:last-child { text-align:right }
         <label class="form-label">Contraseña</label>
         <input class="form-input" type="password" id="loginPass" placeholder="••••••••" onkeydown="if(event.key==='Enter')doLogin()" />
       </div>
-      <button class="btn btn-primary" style="width:100%;justify-content:center;margin-top:8px" id="btnLogin" onclick="doLogin()">
-        Entrar
-      </button>
+      <button class="btn btn-primary" style="width:100%;justify-content:center;margin-top:8px" id="btnLogin" onclick="doLogin()">Entrar</button>
     </div>
-
     <div id="formRegister" style="display:none">
       <div class="form-group">
         <label class="form-label">Email</label>
@@ -311,9 +344,7 @@ tbody td:last-child { text-align:right }
         <label class="form-label">Confirmar contraseña</label>
         <input class="form-input" type="password" id="regPass2" placeholder="Repetí la contraseña" onkeydown="if(event.key==='Enter')doRegister()" />
       </div>
-      <button class="btn btn-primary" style="width:100%;justify-content:center;margin-top:8px" id="btnRegister" onclick="doRegister()">
-        Crear cuenta
-      </button>
+      <button class="btn btn-primary" style="width:100%;justify-content:center;margin-top:8px" id="btnRegister" onclick="doRegister()">Crear cuenta</button>
     </div>
   </div>
 </div>
@@ -368,9 +399,10 @@ tbody td:last-child { text-align:right }
         </div>
         <div class="stats-grid" id="deptStats"></div>
         <div class="tabs">
-          <button class="tab active" id="tabIngresos" onclick="switchTab('ingresos')">Ingresos</button>
-          <button class="tab" id="tabEgresos"  onclick="switchTab('egresos')">Egresos</button>
-          <button class="tab" id="tabResumen"  onclick="switchTab('resumen')">Resumen</button>
+          <button class="tab active" id="tabIngresos"  onclick="switchTab('ingresos')">Ingresos</button>
+          <button class="tab"        id="tabEgresos"   onclick="switchTab('egresos')">Egresos</button>
+          <button class="tab"        id="tabGanancias" onclick="switchTab('ganancias')">Ganancias netas</button>
+          <button class="tab"        id="tabResumen"   onclick="switchTab('resumen')">Resumen</button>
         </div>
         <div id="panelIngresos">
           <div class="table-container">
@@ -396,7 +428,12 @@ tbody td:last-child { text-align:right }
             <div id="tableEgresos"></div>
           </div>
         </div>
-        <div id="panelResumen" style="display:none"><div id="resumenContent"></div></div>
+        <div id="panelGanancias" style="display:none">
+          <div id="gananciasContent"></div>
+        </div>
+        <div id="panelResumen" style="display:none">
+          <div id="resumenContent"></div>
+        </div>
       </div>
 
       <!-- EMPTY -->
@@ -448,12 +485,25 @@ tbody td:last-child { text-align:right }
       </div>
     </div>
     <div class="form-group"><label class="form-label">Motivo *</label><input class="form-input" id="ingresoMotivo" placeholder="ej: Reserva Airbnb 4 al 8/1 — JUAN" /></div>
-    <div class="form-group"><label class="form-label">Monto *</label><input type="number" class="form-input" id="ingresoMonto" placeholder="0.00" step="0.01" oninput="toggle25()" /></div>
-    <div class="form-check" id="grupoPorcentaje">
-      <input type="checkbox" id="ingresoAplicar25" onchange="toggle25()">
-      <label for="ingresoAplicar25">Descontar 25% de comisión</label>
+    <div class="form-group"><label class="form-label">Monto *</label><input type="number" class="form-input" id="ingresoMonto" placeholder="0.00" step="0.01" oninput="updatePreview()" /></div>
+
+    <!-- DESCUENTO -->
+    <div class="form-check">
+      <input type="checkbox" id="ingresoAplicarDesc" onchange="toggleDescuento()">
+      <label for="ingresoAplicarDesc">Aplicar descuento / comisión</label>
     </div>
-    <div class="preview-box" id="preview25"></div>
+    <div class="descuento-panel" id="descuentoPanel">
+      <div class="descuento-tipo-row">
+        <button class="tipo-btn active" id="tipoPorcentaje" onclick="setTipoDesc('porcentaje')">% Porcentaje</button>
+        <button class="tipo-btn" id="tipoFijo" onclick="setTipoDesc('fijo')">$ Monto fijo</button>
+      </div>
+      <div class="descuento-input-row">
+        <input type="number" class="form-input" id="ingresoDescValor" placeholder="0" step="0.01" min="0" oninput="updatePreview()" style="flex:1" />
+        <span class="descuento-suffix" id="descSuffix">%</span>
+      </div>
+    </div>
+    <div class="preview-box" id="previewDesc"></div>
+
     <div class="modal-actions">
       <button class="btn btn-ghost" onclick="closeModal('modalIngreso')">Cancelar</button>
       <button class="btn btn-primary" id="saveIngresoBtn" onclick="saveIngreso()">Guardar</button>
@@ -479,7 +529,7 @@ tbody td:last-child { text-align:right }
 
 <script>
 // ═══════════════════════════════════════════════════
-// CONFIGURACIÓN — REEMPLAZÁ ESTOS VALORES
+// CONFIGURACIÓN
 // ═══════════════════════════════════════════════════
 const SUPABASE_URL  = 'https://vohgsunfetqxuzvhonct.supabase.co';
 const SUPABASE_ANON = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InZvaGdzdW5mZXRxeHV6dmhvbmN0Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzQ2MzU1NzUsImV4cCI6MjA5MDIxMTU3NX0.txRJ0P3Mc0AZf3yD0qEFYfoZU3pxct3wtOSnSvS1smE';
@@ -489,97 +539,109 @@ const { createClient } = supabase;
 const sb = createClient(SUPABASE_URL, SUPABASE_ANON);
 
 // ── STATE ──
-let currentUser = null;
+let currentUser   = null;
 let currentDeptId = null;
-let currentTab = 'ingresos';
-let editingDeptId = null;
-let editingIngresoId = null;
-let editingEgresoId = null;
+let currentTab    = 'ingresos';
+let editingDeptId     = null;
+let editingIngresoId  = null;
+let editingEgresoId   = null;
+let currentTipoDesc   = 'porcentaje'; // 'porcentaje' | 'fijo'
 
-// Cache local para velocidad
 let cache = { departamentos: [], ingresos: [], egresos: [] };
 
 // ── UTILS ──
 const meses = ['Enero','Febrero','Marzo','Abril','Mayo','Junio','Julio','Agosto','Septiembre','Octubre','Noviembre','Diciembre'];
 const fmt = (n, dec=0) => n == null || isNaN(n) ? '—' : new Intl.NumberFormat('es-AR',{minimumFractionDigits:dec,maximumFractionDigits:dec}).format(n);
 const fmtMoney = (n, m='ARS') => (n == null || isNaN(n)) ? '—' : (m==='USD'?'U$D ':'$ ') + fmt(Math.abs(n), m==='USD'?2:0);
-const mesKey = f => { if(!f) return ''; const d = new Date(f+'T12:00:00'); return d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0') };
+const mesKey   = f => { if(!f) return ''; const d = new Date(f+'T12:00:00'); return d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0') };
 const mesLabel = k => { if(!k) return ''; const [y,m]=k.split('-'); return meses[parseInt(m)-1]+' '+y };
 const todayStr = () => new Date().toISOString().slice(0,10);
-const uid = () => crypto.randomUUID ? crypto.randomUUID() : Date.now().toString(36);
+
+// ── DESCUENTO HELPERS ──
+// Calcula el monto descontado y el neto para un ingreso.
+// Soporta tanto el formato viejo (aplicar25) como el nuevo (descuento_tipo + descuento_valor).
+function calcDescuento(ingreso) {
+  const bruto = ingreso.monto || 0;
+
+  // Formato NUEVO: descuento_tipo definido
+  if (ingreso.descuento_tipo) {
+    const val = ingreso.descuento_valor || 0;
+    if (ingreso.descuento_tipo === 'porcentaje') {
+      const desc = bruto * (val / 100);
+      return { bruto, descuento: desc, neto: bruto - desc, label: `${val}%` };
+    } else { // fijo
+      const desc = Math.min(val, bruto);
+      return { bruto, descuento: desc, neto: bruto - desc, label: `$ ${fmt(val)}` };
+    }
+  }
+
+  // Formato VIEJO: aplicar25 (compatibilidad)
+  if (ingreso.aplicar25 && ingreso.moneda !== 'USD') {
+    const desc = bruto * 0.25;
+    return { bruto, descuento: desc, neto: bruto - desc, label: '25%' };
+  }
+
+  // Sin descuento
+  return { bruto, descuento: 0, neto: bruto, label: null };
+}
 
 // ── AUTH ──
 function setAuthTab(tab) {
   document.getElementById('tabLogin').classList.toggle('active', tab==='login');
   document.getElementById('tabRegister').classList.toggle('active', tab==='register');
-  document.getElementById('formLogin').style.display = tab==='login'?'':'none';
+  document.getElementById('formLogin').style.display    = tab==='login'?'':'none';
   document.getElementById('formRegister').style.display = tab==='register'?'':'none';
   clearAuthMessages();
 }
-
-function showAuthError(msg) {
-  const el = document.getElementById('authError');
-  el.textContent = msg; el.style.display = '';
-  document.getElementById('authSuccess').style.display = 'none';
-}
-function showAuthSuccess(msg) {
-  const el = document.getElementById('authSuccess');
-  el.textContent = msg; el.style.display = '';
-  document.getElementById('authError').style.display = 'none';
-}
-function clearAuthMessages() {
-  document.getElementById('authError').style.display = 'none';
-  document.getElementById('authSuccess').style.display = 'none';
-}
+function showAuthError(msg)   { const el=document.getElementById('authError');   el.textContent=msg; el.style.display=''; document.getElementById('authSuccess').style.display='none'; }
+function showAuthSuccess(msg) { const el=document.getElementById('authSuccess'); el.textContent=msg; el.style.display=''; document.getElementById('authError').style.display='none'; }
+function clearAuthMessages()  { document.getElementById('authError').style.display='none'; document.getElementById('authSuccess').style.display='none'; }
 
 async function doLogin() {
   const email = document.getElementById('loginEmail').value.trim();
   const pass  = document.getElementById('loginPass').value;
-  if (!email || !pass) { showAuthError('Completá email y contraseña'); return; }
+  if (!email||!pass) { showAuthError('Completá email y contraseña'); return; }
   const btn = document.getElementById('btnLogin');
-  btn.disabled = true; btn.textContent = 'Entrando...';
-  const { error } = await sb.auth.signInWithPassword({ email, password: pass });
-  btn.disabled = false; btn.textContent = 'Entrar';
-  if (error) showAuthError(error.message === 'Invalid login credentials' ? 'Email o contraseña incorrectos' : error.message);
+  btn.disabled=true; btn.textContent='Entrando...';
+  const { error } = await sb.auth.signInWithPassword({ email, password:pass });
+  btn.disabled=false; btn.textContent='Entrar';
+  if (error) showAuthError(error.message==='Invalid login credentials'?'Email o contraseña incorrectos':error.message);
 }
 
 async function doRegister() {
   const email = document.getElementById('regEmail').value.trim();
   const pass  = document.getElementById('regPass').value;
   const pass2 = document.getElementById('regPass2').value;
-  if (!email || !pass) { showAuthError('Completá todos los campos'); return; }
-  if (pass !== pass2) { showAuthError('Las contraseñas no coinciden'); return; }
-  if (pass.length < 6) { showAuthError('La contraseña debe tener al menos 6 caracteres'); return; }
+  if (!email||!pass) { showAuthError('Completá todos los campos'); return; }
+  if (pass!==pass2)  { showAuthError('Las contraseñas no coinciden'); return; }
+  if (pass.length<6) { showAuthError('La contraseña debe tener al menos 6 caracteres'); return; }
   const btn = document.getElementById('btnRegister');
-  btn.disabled = true; btn.textContent = 'Creando cuenta...';
-  const { error } = await sb.auth.signUp({ email, password: pass });
-  btn.disabled = false; btn.textContent = 'Crear cuenta';
+  btn.disabled=true; btn.textContent='Creando cuenta...';
+  const { error } = await sb.auth.signUp({ email, password:pass });
+  btn.disabled=false; btn.textContent='Crear cuenta';
   if (error) showAuthError(error.message);
-  else showAuthSuccess('Cuenta creada. Revisá tu email para confirmar (o iniciá sesión si no tenés confirmación activada).');
+  else showAuthSuccess('Cuenta creada. Revisá tu email para confirmar.');
 }
 
 async function doLogout() {
   await sb.auth.signOut();
   currentUser = null;
-  cache = { departamentos: [], ingresos: [], egresos: [] };
-  document.getElementById('screenApp').style.display = 'none';
+  cache = { departamentos:[], ingresos:[], egresos:[] };
+  document.getElementById('screenApp').style.display  = 'none';
   document.getElementById('screenAuth').style.display = 'flex';
 }
-
 
 async function enterApp(user) {
   currentUser = user;
   document.getElementById('screenAuth').style.display = 'none';
-  document.getElementById('screenApp').style.display = 'block';
-  document.getElementById('userEmail').textContent = user.email;
+  document.getElementById('screenApp').style.display  = 'block';
+  document.getElementById('userEmail').textContent     = user.email;
 
-  // Mostrar loading visible
   ['viewOverview','viewDept','viewEmpty','viewLoading'].forEach(id => {
     const el = document.getElementById(id);
     if (el) el.style.display = 'none';
   });
-  const loadingEl = document.getElementById('viewLoading');
-  if (loadingEl) loadingEl.style.display = 'block';
+  document.getElementById('viewLoading').style.display = 'block';
 
   try {
     await loadAllData();
@@ -587,17 +649,14 @@ async function enterApp(user) {
     const activos = cache.departamentos.filter(d => d.activo !== false);
     if (activos.length > 0) selectDept(activos[0].id);
     else {
-      ['viewOverview','viewDept','viewLoading'].forEach(id => {
-        const el = document.getElementById(id);
-        if (el) el.style.display = 'none';
-      });
+      ['viewOverview','viewDept','viewLoading'].forEach(id => { const el=document.getElementById(id); if(el) el.style.display='none'; });
       document.getElementById('viewEmpty').style.display = 'block';
     }
   } catch(err) {
     console.error('enterApp error:', err);
     document.getElementById('viewLoading').style.display = 'none';
-    document.getElementById('viewEmpty').style.display = 'block';
-    document.getElementById('viewEmpty').innerHTML = '<div style="padding:40px;color:#eb5757;font-size:14px">Error: ' + err.message + '<br><br><button onclick="location.reload()" style="margin-top:16px;padding:8px 16px;background:#333;color:#fff;border:none;border-radius:8px;cursor:pointer">Reintentar</button></div>';
+    document.getElementById('viewEmpty').style.display   = 'block';
+    document.getElementById('viewEmpty').innerHTML = '<div style="padding:40px;color:#eb5757;font-size:14px">Error: '+err.message+'<br><br><button onclick="location.reload()" style="margin-top:16px;padding:8px 16px;background:#333;color:#fff;border:none;border-radius:8px;cursor:pointer">Reintentar</button></div>';
   }
 }
 
@@ -607,18 +666,18 @@ async function loadAllData() {
     sb.from('ingresos').select('*').order('fecha', {ascending:false}),
     sb.from('egresos').select('*').order('fecha', {ascending:false}),
   ]);
-  if (deptRes.error) throw new Error('Tabla departamentos: ' + deptRes.error.message);
-  if (ingRes.error)  throw new Error('Tabla ingresos: '      + ingRes.error.message);
-  if (egrRes.error)  throw new Error('Tabla egresos: '       + egrRes.error.message);
+  if (deptRes.error) throw new Error('Tabla departamentos: '+deptRes.error.message);
+  if (ingRes.error)  throw new Error('Tabla ingresos: '     +ingRes.error.message);
+  if (egrRes.error)  throw new Error('Tabla egresos: '      +egrRes.error.message);
   cache.departamentos = deptRes.data || [];
-  cache.ingresos      = (ingRes.data  || []).map(i => ({...i, deptId: i.dept_id}));
-  cache.egresos       = (egrRes.data  || []).map(e => ({...e, deptId: e.dept_id}));
+  cache.ingresos      = (ingRes.data||[]).map(i => ({...i, deptId:i.dept_id}));
+  cache.egresos       = (egrRes.data||[]).map(e => ({...e, deptId:e.dept_id}));
 }
 
 // ── VIEWS ──
 function showView(name) {
   ['overview','dept','empty','loading'].forEach(v => {
-    document.getElementById('view' + v.charAt(0).toUpperCase() + v.slice(1)).style.display = v===name ? '' : 'none';
+    document.getElementById('view'+v.charAt(0).toUpperCase()+v.slice(1)).style.display = v===name?'':'none';
   });
   document.getElementById('overviewBtn').classList.toggle('active', name==='overview');
 }
@@ -644,11 +703,11 @@ function renderSidebar() {
   const activos   = cache.departamentos.filter(d => d.activo !== false);
   const inactivos = cache.departamentos.filter(d => d.activo === false);
   let html = '<div class="dept-section-label">Departamentos</div>';
-  if (cache.departamentos.length === 0) html += `<div style="padding:12px;font-size:12px;color:var(--text3)">Sin departamentos aún</div>`;
+  if (cache.departamentos.length===0) html += `<div style="padding:12px;font-size:12px;color:var(--text3)">Sin departamentos aún</div>`;
   activos.forEach(d => {
     html += `<div class="dept-item ${currentDeptId===d.id?'active':''}" onclick="selectDept('${d.id}')"><div class="dept-dot"></div><div class="dept-name">${d.nombre}</div></div>`;
   });
-  if (inactivos.length > 0) {
+  if (inactivos.length>0) {
     html += '<div class="dept-section-label" style="margin-top:8px">Dados de baja</div>';
     inactivos.forEach(d => {
       html += `<div class="dept-item inactive ${currentDeptId===d.id?'active':''}" onclick="selectDept('${d.id}')"><div class="dept-dot"></div><div class="dept-name">${d.nombre}</div></div>`;
@@ -660,26 +719,29 @@ function renderSidebar() {
 // ── OVERVIEW ──
 function renderOverview() {
   const depts = cache.departamentos.filter(d => d.activo !== false);
-  let tIng=0, tEgr=0, tUSD=0;
+  let tIng=0, tEgr=0, tUSD=0, tDesc=0;
   depts.forEach(d => {
-    cache.ingresos.filter(i=>i.deptId===d.id).forEach(i => { if(i.moneda==='USD') tUSD+=i.monto; else tIng+=(i.aplicar25?i.monto*0.75:i.monto); });
+    cache.ingresos.filter(i=>i.deptId===d.id).forEach(i => {
+      if (i.moneda==='USD') { tUSD+=i.monto; }
+      else { const c=calcDescuento(i); tIng+=c.neto; tDesc+=c.descuento; }
+    });
     cache.egresos.filter(e=>e.deptId===d.id).forEach(e => tEgr+=e.monto);
   });
   const bal = tIng - tEgr;
   document.getElementById('overviewStats').innerHTML = `
-    <div class="stat-card green"><div class="stat-label">Ingresos ARS</div><div class="stat-value green">${fmtMoney(tIng)}</div><div class="stat-sub">${depts.length} deptos activos</div></div>
+    <div class="stat-card green"><div class="stat-label">Ingresos netos ARS</div><div class="stat-value green">${fmtMoney(tIng)}</div><div class="stat-sub">${depts.length} deptos activos</div></div>
     <div class="stat-card red"><div class="stat-label">Egresos</div><div class="stat-value red">${fmtMoney(tEgr)}</div></div>
     <div class="stat-card ${bal>=0?'green':'red'}"><div class="stat-label">Balance ARS</div><div class="stat-value ${bal>=0?'green':'red'}">${fmtMoney(bal)}</div></div>
     <div class="stat-card gold"><div class="stat-label">Total USD</div><div class="stat-value gold">${fmtMoney(tUSD,'USD')}</div></div>`;
   let html = '';
-  if (depts.length === 0) {
+  if (depts.length===0) {
     html = `<div class="empty-state"><div class="empty-icon">🏢</div><div style="margin-bottom:16px">No hay departamentos activos</div><button class="btn btn-primary" onclick="openDeptModal()">+ Nuevo departamento</button></div>`;
   } else {
     depts.forEach(d => {
       let di=0,de=0,du=0;
-      cache.ingresos.filter(i=>i.deptId===d.id).forEach(i => { if(i.moneda==='USD') du+=i.monto; else di+=(i.aplicar25?i.monto*0.75:i.monto); });
+      cache.ingresos.filter(i=>i.deptId===d.id).forEach(i => { if(i.moneda==='USD') du+=i.monto; else { const c=calcDescuento(i); di+=c.neto; } });
       cache.egresos.filter(e=>e.deptId===d.id).forEach(e => de+=e.monto);
-      const db = di-de;
+      const db=di-de;
       html += `<div class="overview-dept-card" onclick="selectDept('${d.id}')">
         <div class="overview-dept-header">
           <div class="overview-dept-name">${d.nombre}</div>
@@ -699,23 +761,26 @@ function renderOverview() {
 
 // ── DEPT VIEW ──
 function renderDeptView() {
-  const dept = cache.departamentos.find(d => d.id === currentDeptId);
+  const dept = cache.departamentos.find(d => d.id===currentDeptId);
   if (!dept) return;
-  document.getElementById('deptTitle').textContent = dept.nombre;
+  document.getElementById('deptTitle').textContent    = dept.nombre;
   document.getElementById('deptSubtitle').textContent = dept.direccion || (dept.activo===false?'Dado de baja':'Activo');
   const btn = document.getElementById('toggleDeptBtn');
   btn.textContent = dept.activo===false ? '✓ Reactivar' : '— Dar de baja';
-  btn.className = dept.activo===false ? 'btn btn-ghost btn-sm' : 'btn btn-danger btn-sm';
+  btn.className   = dept.activo===false ? 'btn btn-ghost btn-sm' : 'btn btn-danger btn-sm';
   renderStats(); renderIngresos(); renderEgresos(); populateMesFiltros();
 }
 
 function renderStats() {
-  const ing = cache.ingresos.filter(i => i.deptId === currentDeptId);
-  const egr = cache.egresos.filter(e => e.deptId === currentDeptId);
-  let ars=0, usd=0, tot=0;
-  ing.forEach(i => { if(i.moneda==='USD') usd+=i.monto; else ars+=(i.aplicar25?i.monto*0.75:i.monto); });
+  const ing = cache.ingresos.filter(i => i.deptId===currentDeptId);
+  const egr = cache.egresos.filter(e => e.deptId===currentDeptId);
+  let ars=0, usd=0, tot=0, desc=0;
+  ing.forEach(i => {
+    if (i.moneda==='USD') usd+=i.monto;
+    else { const c=calcDescuento(i); ars+=c.neto; desc+=c.descuento; }
+  });
   egr.forEach(e => tot+=e.monto);
-  const bal = ars-tot;
+  const bal=ars-tot;
   document.getElementById('deptStats').innerHTML = `
     <div class="stat-card green"><div class="stat-label">Ingresos netos ARS</div><div class="stat-value green">${fmtMoney(ars)}</div><div class="stat-sub">${ing.filter(i=>i.moneda!=='USD').length} registros</div></div>
     <div class="stat-card gold"><div class="stat-label">Ingresos USD</div><div class="stat-value gold">${fmtMoney(usd,'USD')}</div><div class="stat-sub">${ing.filter(i=>i.moneda==='USD').length} registros</div></div>
@@ -726,25 +791,26 @@ function renderStats() {
 function populateMesFiltros() {
   const ing = cache.ingresos.filter(i=>i.deptId===currentDeptId);
   const egr = cache.egresos.filter(e=>e.deptId===currentDeptId);
-  const mI = [...new Set(ing.map(i=>mesKey(i.fecha)))].filter(Boolean).sort().reverse();
-  const mE = [...new Set(egr.map(e=>mesKey(e.fecha)))].filter(Boolean).sort().reverse();
-  const sI = document.getElementById('filtroMesIngresos');
-  const sE = document.getElementById('filtroMesEgresos');
-  const vI = sI.value, vE = sE.value;
-  sI.innerHTML = '<option value="">Todos los meses</option>' + mI.map(m=>`<option value="${m}">${mesLabel(m)}</option>`).join('');
-  sE.innerHTML = '<option value="">Todos los meses</option>' + mE.map(m=>`<option value="${m}">${mesLabel(m)}</option>`).join('');
+  const mI  = [...new Set(ing.map(i=>mesKey(i.fecha)))].filter(Boolean).sort().reverse();
+  const mE  = [...new Set(egr.map(e=>mesKey(e.fecha)))].filter(Boolean).sort().reverse();
+  const sI=document.getElementById('filtroMesIngresos'), sE=document.getElementById('filtroMesEgresos');
+  const vI=sI.value, vE=sE.value;
+  sI.innerHTML = '<option value="">Todos los meses</option>'+mI.map(m=>`<option value="${m}">${mesLabel(m)}</option>`).join('');
+  sE.innerHTML = '<option value="">Todos los meses</option>'+mE.map(m=>`<option value="${m}">${mesLabel(m)}</option>`).join('');
   if(vI) sI.value=vI; if(vE) sE.value=vE;
 }
 
 function switchTab(tab) {
   currentTab = tab;
-  ['ingresos','egresos','resumen'].forEach(t => {
+  ['ingresos','egresos','ganancias','resumen'].forEach(t => {
     document.getElementById('tab'+t.charAt(0).toUpperCase()+t.slice(1)).classList.toggle('active', t===tab);
     document.getElementById('panel'+t.charAt(0).toUpperCase()+t.slice(1)).style.display = t===tab?'':'none';
   });
-  if (tab==='resumen') renderResumen();
+  if (tab==='resumen')   renderResumen();
+  if (tab==='ganancias') renderGanancias();
 }
 
+// ── RENDER INGRESOS ──
 function renderIngresos() {
   const filtro = document.getElementById('filtroMesIngresos').value;
   let rows = cache.ingresos.filter(i=>i.deptId===currentDeptId);
@@ -753,31 +819,38 @@ function renderIngresos() {
     document.getElementById('tableIngresos').innerHTML = `<div class="empty-state"><div class="empty-icon">📥</div><div style="margin-bottom:16px">Sin ingresos registrados</div><button class="btn btn-primary btn-sm" onclick="openIngresoModal()">+ Agregar ingreso</button></div>`;
     return;
   }
-  let html = `<table><thead><tr><th>Fecha</th><th>Motivo</th><th>Bruto</th><th>Comisión</th><th>Neto</th><th></th></tr></thead><tbody>`;
+  let html = `<table><thead><tr><th>Fecha</th><th>Motivo</th><th>Bruto</th><th>Descuento</th><th>Neto</th><th></th></tr></thead><tbody>`;
   rows.forEach(i => {
-    const com = i.aplicar25 && i.moneda!=='USD' ? i.monto*0.25 : 0;
-    const neto = i.moneda==='USD' ? i.monto : (i.aplicar25?i.monto*0.75:i.monto);
+    const c = calcDescuento(i);
+    const esUSD = i.moneda === 'USD';
     html += `<tr>
       <td class="td-date">${i.fecha}</td>
       <td class="td-motivo">${i.motivo}</td>
-      <td class="td-amount ingreso">${fmtMoney(i.monto,i.moneda)}</td>
-      <td>${com>0?`<span class="badge badge-gold">- ${fmtMoney(com)}</span>`:'<span class="badge badge-gray">—</span>'}</td>
-      <td class="td-amount">${i.moneda==='USD'?`<span class="badge badge-gold">${fmtMoney(neto,'USD')}</span>`:fmtMoney(neto)}</td>
+      <td class="td-amount ingreso">${fmtMoney(i.monto, i.moneda)}</td>
+      <td>${c.descuento>0
+          ? `<span class="badge badge-red">-${fmtMoney(c.descuento)} <span style="opacity:.7;font-size:10px">${c.label}</span></span>`
+          : '<span class="badge badge-gray">—</span>'}</td>
+      <td class="td-amount">${esUSD
+          ? `<span class="badge badge-gold">${fmtMoney(i.monto,'USD')}</span>`
+          : fmtMoney(c.neto)}</td>
       <td><div class="row-actions">
         <button class="icon-btn" onclick="editIngreso('${i.id}')">✎</button>
         <button class="icon-btn del" onclick="deleteIngreso('${i.id}')">✕</button>
       </div></td>
     </tr>`;
   });
-  const tn = rows.filter(r=>r.moneda!=='USD').reduce((s,r)=>s+(r.aplicar25?r.monto*0.75:r.monto),0);
+  const tn = rows.filter(r=>r.moneda!=='USD').reduce((s,r)=>s+calcDescuento(r).neto,0);
+  const td = rows.filter(r=>r.moneda!=='USD').reduce((s,r)=>s+calcDescuento(r).descuento,0);
   const tu = rows.filter(r=>r.moneda==='USD').reduce((s,r)=>s+r.monto,0);
   html += `</tbody><tfoot><tr style="border-top:2px solid var(--border2)">
-    <td colspan="4" style="padding:12px 14px;font-size:12px;font-weight:600;color:var(--text2)">TOTAL</td>
+    <td colspan="3" style="padding:12px 14px;font-size:12px;font-weight:600;color:var(--text2)">TOTAL</td>
+    <td style="padding:12px 14px"><span style="color:var(--red);font-family:'DM Mono',monospace;font-size:12px">-${fmtMoney(td)}</span></td>
     <td style="padding:12px 14px"><span style="color:var(--green);font-family:'DM Mono',monospace;font-size:13px">${fmtMoney(tn)}</span>${tu>0?`<br><span style="color:var(--accent);font-size:11px;font-family:'DM Mono',monospace">${fmtMoney(tu,'USD')}</span>`:''}</td>
     <td></td></tr></tfoot></table>`;
   document.getElementById('tableIngresos').innerHTML = html;
 }
 
+// ── RENDER EGRESOS ──
 function renderEgresos() {
   const filtro = document.getElementById('filtroMesEgresos').value;
   let rows = cache.egresos.filter(e=>e.deptId===currentDeptId);
@@ -806,6 +879,96 @@ function renderEgresos() {
   document.getElementById('tableEgresos').innerHTML = html;
 }
 
+// ── RENDER GANANCIAS NETAS ──
+function renderGanancias() {
+  const ing = cache.ingresos.filter(i => i.deptId===currentDeptId && i.moneda!=='USD');
+  if (ing.length===0) {
+    document.getElementById('gananciasContent').innerHTML = `<div class="empty-state"><div class="empty-icon">💰</div><div>No hay ingresos en ARS para mostrar</div></div>`;
+    return;
+  }
+
+  // Totales resumen
+  let totalBruto=0, totalDesc=0, totalNeto=0;
+  ing.forEach(i => { const c=calcDescuento(i); totalBruto+=c.bruto; totalDesc+=c.descuento; totalNeto+=c.neto; });
+  const conDesc = ing.filter(i => calcDescuento(i).descuento > 0);
+
+  // Resumen arriba
+  let html = `
+    <div class="ganancias-summary">
+      <div class="stat-card green">
+        <div class="stat-label">Ingresos brutos</div>
+        <div class="stat-value green">${fmtMoney(totalBruto)}</div>
+        <div class="stat-sub">${ing.length} registros</div>
+      </div>
+      <div class="stat-card red">
+        <div class="stat-label">Total descuentos</div>
+        <div class="stat-value red">-${fmtMoney(totalDesc)}</div>
+        <div class="stat-sub">${conDesc.length} con descuento</div>
+      </div>
+      <div class="stat-card purple">
+        <div class="stat-label">Ganancia neta ARS</div>
+        <div class="stat-value purple">${fmtMoney(totalNeto)}</div>
+        <div class="stat-sub">${totalBruto>0?Math.round((totalNeto/totalBruto)*100):0}% del bruto</div>
+      </div>
+    </div>`;
+
+  // Detalle por mes
+  const allMonths = [...new Set(ing.map(i=>mesKey(i.fecha)))].filter(Boolean).sort().reverse();
+
+  allMonths.forEach(mk => {
+    const mesRows = ing.filter(i=>mesKey(i.fecha)===mk);
+    let mBruto=0, mDesc=0, mNeto=0;
+    mesRows.forEach(i => { const c=calcDescuento(i); mBruto+=c.bruto; mDesc+=c.descuento; mNeto+=c.neto; });
+
+    html += `
+      <div class="table-container" style="margin-bottom:16px">
+        <div class="table-toolbar">
+          <span class="table-title">${mesLabel(mk)}</span>
+          <div style="display:flex;gap:16px;font-size:12px;font-family:'DM Mono',monospace">
+            <span style="color:var(--text3)">Bruto: <span style="color:var(--text)">${fmtMoney(mBruto)}</span></span>
+            <span style="color:var(--red)">-${fmtMoney(mDesc)}</span>
+            <span style="color:var(--purple);font-weight:600">= ${fmtMoney(mNeto)}</span>
+          </div>
+        </div>
+        <table>
+          <thead><tr>
+            <th>Fecha</th><th>Motivo</th>
+            <th style="text-align:right">Bruto</th>
+            <th style="text-align:right">Descuento</th>
+            <th style="text-align:right">Neto</th>
+          </tr></thead>
+          <tbody>`;
+
+    mesRows.forEach(i => {
+      const c = calcDescuento(i);
+      html += `<tr>
+        <td class="td-date">${i.fecha}</td>
+        <td class="td-motivo">${i.motivo}</td>
+        <td style="text-align:right;font-family:'DM Mono',monospace;font-size:13px;color:var(--green)">${fmtMoney(c.bruto)}</td>
+        <td style="text-align:right">
+          ${c.descuento>0
+            ? `<span class="badge badge-red">-${fmtMoney(c.descuento)} <span style="opacity:.7;font-size:10px">${c.label}</span></span>`
+            : '<span class="badge badge-gray">sin desc.</span>'}
+        </td>
+        <td style="text-align:right;font-family:'DM Mono',monospace;font-size:13px;color:var(--purple);font-weight:500">${fmtMoney(c.neto)}</td>
+      </tr>`;
+    });
+
+    html += `</tbody>
+          <tfoot><tr style="border-top:2px solid var(--border2)">
+            <td colspan="2" style="padding:10px 14px;font-size:11px;font-weight:600;color:var(--text2)">TOTAL ${mesLabel(mk).toUpperCase()}</td>
+            <td style="padding:10px 14px;text-align:right;font-family:'DM Mono',monospace;font-size:12px;color:var(--green)">${fmtMoney(mBruto)}</td>
+            <td style="padding:10px 14px;text-align:right;font-family:'DM Mono',monospace;font-size:12px;color:var(--red)">-${fmtMoney(mDesc)}</td>
+            <td style="padding:10px 14px;text-align:right;font-family:'DM Mono',monospace;font-size:13px;font-weight:600;color:var(--purple)">${fmtMoney(mNeto)}</td>
+          </tr></tfoot>
+        </table>
+      </div>`;
+  });
+
+  document.getElementById('gananciasContent').innerHTML = html;
+}
+
+// ── RENDER RESUMEN ──
 function renderResumen() {
   const ing = cache.ingresos.filter(i=>i.deptId===currentDeptId);
   const egr = cache.egresos.filter(e=>e.deptId===currentDeptId);
@@ -818,7 +981,7 @@ function renderResumen() {
   let mesRows='';
   allMonths.forEach(mk => {
     const mI=ing.filter(i=>mesKey(i.fecha)===mk), mE=egr.filter(e=>mesKey(e.fecha)===mk);
-    const ars=mI.filter(i=>i.moneda!=='USD').reduce((s,i)=>s+(i.aplicar25?i.monto*0.75:i.monto),0);
+    const ars=mI.filter(i=>i.moneda!=='USD').reduce((s,i)=>s+calcDescuento(i).neto,0);
     const usd=mI.filter(i=>i.moneda==='USD').reduce((s,i)=>s+i.monto,0);
     const et=mE.reduce((s,e)=>s+e.monto,0);
     const bal=ars-et; tA+=ars; tU+=usd; tE+=et;
@@ -848,13 +1011,13 @@ function renderResumen() {
 
 // ── DEPT CRUD ──
 function openDeptModal(id) {
-  editingDeptId = id || null;
+  editingDeptId = id||null;
   document.getElementById('deptModalTitle').textContent = id ? 'Editar departamento' : 'Nuevo departamento';
   if (id) {
     const d = cache.departamentos.find(x=>x.id===id);
-    document.getElementById('deptNombre').value = d.nombre;
+    document.getElementById('deptNombre').value    = d.nombre;
     document.getElementById('deptDireccion').value = d.direccion||'';
-    document.getElementById('deptNotas').value = d.notas||'';
+    document.getElementById('deptNotas').value     = d.notas||'';
   } else {
     document.getElementById('deptNombre').value='';
     document.getElementById('deptDireccion').value='';
@@ -873,12 +1036,12 @@ async function saveDept() {
   const data = { nombre, direccion:document.getElementById('deptDireccion').value.trim()||null, notas:document.getElementById('deptNotas').value.trim()||null };
   let error;
   if (editingDeptId) {
-    ({ error } = await sb.from('departamentos').update(data).eq('id', editingDeptId));
-    if (!error) { const d=cache.departamentos.find(x=>x.id===editingDeptId); Object.assign(d, data); }
+    ({ error } = await sb.from('departamentos').update(data).eq('id',editingDeptId));
+    if (!error) { const d=cache.departamentos.find(x=>x.id===editingDeptId); Object.assign(d,data); }
   } else {
-    const { data:row, error:e } = await sb.from('departamentos').insert({...data, user_id:currentUser.id}).select().single();
+    const { data:row, error:e } = await sb.from('departamentos').insert({...data,user_id:currentUser.id}).select().single();
     error=e;
-    if (!error) { cache.departamentos.push({...row, activo:true}); currentDeptId=row.id; }
+    if (!error) { cache.departamentos.push({...row,activo:true}); currentDeptId=row.id; }
   }
   btn.disabled=false; btn.textContent='Guardar';
   if (error) { alert('Error: '+error.message); return; }
@@ -892,91 +1055,157 @@ async function toggleDeptStatus() {
   if (!dept) return;
   const newVal = dept.activo===false;
   if (!newVal && !confirm(`¿Dar de baja "${dept.nombre}"?`)) return;
-  const { error } = await sb.from('departamentos').update({ activo:newVal }).eq('id', currentDeptId);
+  const { error } = await sb.from('departamentos').update({activo:newVal}).eq('id',currentDeptId);
   if (error) { alert('Error: '+error.message); return; }
   dept.activo = newVal;
   renderSidebar(); renderDeptView();
 }
 
+// ── INGRESO MODAL: DESCUENTO UI ──
+function toggleDescuento() {
+  const checked = document.getElementById('ingresoAplicarDesc').checked;
+  document.getElementById('descuentoPanel').style.display = checked ? '' : 'none';
+  if (!checked) document.getElementById('ingresoDescValor').value = '';
+  updatePreview();
+}
+
+function setTipoDesc(tipo) {
+  currentTipoDesc = tipo;
+  document.getElementById('tipoPorcentaje').classList.toggle('active', tipo==='porcentaje');
+  document.getElementById('tipoFijo').classList.toggle('active', tipo==='fijo');
+  document.getElementById('descSuffix').textContent = tipo==='porcentaje' ? '%' : 'ARS';
+  document.getElementById('ingresoDescValor').placeholder = tipo==='porcentaje' ? 'ej: 25' : 'ej: 5000';
+  document.getElementById('ingresoDescValor').value = '';
+  updatePreview();
+}
+
+function updatePreview() {
+  const aplicar = document.getElementById('ingresoAplicarDesc').checked;
+  const monto   = parseFloat(document.getElementById('ingresoMonto').value)||0;
+  const val     = parseFloat(document.getElementById('ingresoDescValor').value)||0;
+  const prev    = document.getElementById('previewDesc');
+
+  if (!aplicar || monto<=0 || val<=0) { prev.style.display='none'; return; }
+
+  let desc=0, label='';
+  if (currentTipoDesc==='porcentaje') {
+    if (val>100) { prev.innerHTML='<span style="color:var(--red)">El porcentaje no puede superar 100%</span>'; prev.style.display=''; return; }
+    desc  = monto*(val/100);
+    label = `${val}%`;
+  } else {
+    desc  = Math.min(val, monto);
+    label = `$ ${fmt(val)} fijo`;
+  }
+  const neto = monto - desc;
+  prev.innerHTML = `Bruto: $ ${fmt(monto)} &nbsp;→&nbsp; Descuento (${label}): <span style="color:var(--red)">-$ ${fmt(desc)}</span> &nbsp;→&nbsp; <strong style="color:var(--purple)">Neto: $ ${fmt(neto)}</strong>`;
+  prev.style.display = '';
+}
+
+function toggleMoneda() {
+  const esUSD = document.getElementById('ingresoMoneda').value==='USD';
+  // Si es USD no tiene sentido aplicar descuento en ARS
+  if (esUSD) {
+    document.getElementById('ingresoAplicarDesc').checked = false;
+    toggleDescuento();
+  }
+  document.getElementById('ingresoAplicarDesc').closest('.form-check').style.opacity = esUSD ? '0.4' : '1';
+  document.getElementById('ingresoAplicarDesc').disabled = esUSD;
+}
+
 // ── INGRESO CRUD ──
 function openIngresoModal(id) {
-  editingIngresoId = id || null;
+  editingIngresoId = id||null;
   document.getElementById('ingresoModalTitle').textContent = id ? 'Editar ingreso' : 'Nuevo ingreso';
+  currentTipoDesc = 'porcentaje';
+
   if (id) {
-    const i=cache.ingresos.find(x=>x.id===id);
-    document.getElementById('ingresoFecha').value=i.fecha;
-    document.getElementById('ingresoMotivo').value=i.motivo;
-    document.getElementById('ingresoMonto').value=i.monto;
-    document.getElementById('ingresoMoneda').value=i.moneda||'ARS';
-    document.getElementById('ingresoAplicar25').checked=!!i.aplicar25;
+    const i = cache.ingresos.find(x=>x.id===id);
+    document.getElementById('ingresoFecha').value  = i.fecha;
+    document.getElementById('ingresoMotivo').value = i.motivo;
+    document.getElementById('ingresoMonto').value  = i.monto;
+    document.getElementById('ingresoMoneda').value = i.moneda||'ARS';
+
+    // Cargar descuento según formato
+    if (i.descuento_tipo) {
+      document.getElementById('ingresoAplicarDesc').checked = true;
+      currentTipoDesc = i.descuento_tipo;
+      document.getElementById('ingresoDescValor').value = i.descuento_valor||'';
+    } else if (i.aplicar25 && i.moneda!=='USD') {
+      // Viejo formato → mostrar como 25%
+      document.getElementById('ingresoAplicarDesc').checked = true;
+      currentTipoDesc = 'porcentaje';
+      document.getElementById('ingresoDescValor').value = 25;
+    } else {
+      document.getElementById('ingresoAplicarDesc').checked = false;
+      document.getElementById('ingresoDescValor').value = '';
+    }
   } else {
-    document.getElementById('ingresoFecha').value=todayStr();
-    document.getElementById('ingresoMotivo').value='';
-    document.getElementById('ingresoMonto').value='';
-    document.getElementById('ingresoMoneda').value='ARS';
-    document.getElementById('ingresoAplicar25').checked=false;
+    document.getElementById('ingresoFecha').value   = todayStr();
+    document.getElementById('ingresoMotivo').value  = '';
+    document.getElementById('ingresoMonto').value   = '';
+    document.getElementById('ingresoMoneda').value  = 'ARS';
+    document.getElementById('ingresoAplicarDesc').checked = false;
+    document.getElementById('ingresoDescValor').value = '';
   }
-  toggleMoneda(); toggle25();
+
+  // Sincronizar UI
+  setTipoDesc(currentTipoDesc);
+  toggleDescuento();
+  toggleMoneda();
   openModal('modalIngreso');
 }
 
 function editIngreso(id) { openIngresoModal(id); }
 
-function toggleMoneda() {
-  const esUSD = document.getElementById('ingresoMoneda').value==='USD';
-  document.getElementById('grupoPorcentaje').style.display = esUSD?'none':'';
-  if (esUSD) document.getElementById('ingresoAplicar25').checked=false;
-  toggle25();
-}
-
-function toggle25() {
-  const check = document.getElementById('ingresoAplicar25').checked;
-  const monto = parseFloat(document.getElementById('ingresoMonto').value)||0;
-  const prev = document.getElementById('preview25');
-  if (check && monto>0) {
-    const com=monto*0.25, neto=monto*0.75;
-    prev.innerHTML=`Bruto: $ ${fmt(monto)} → Comisión: -$ ${fmt(com)} → <strong style="color:var(--green)">Neto: $ ${fmt(neto)}</strong>`;
-    prev.style.display='';
-  } else { prev.style.display='none'; }
-}
-
 async function saveIngreso() {
-  const fecha=document.getElementById('ingresoFecha').value;
-  const motivo=document.getElementById('ingresoMotivo').value.trim();
-  const monto=parseFloat(document.getElementById('ingresoMonto').value);
-  const moneda=document.getElementById('ingresoMoneda').value;
-  const aplicar25=document.getElementById('ingresoAplicar25').checked;
+  const fecha    = document.getElementById('ingresoFecha').value;
+  const motivo   = document.getElementById('ingresoMotivo').value.trim();
+  const monto    = parseFloat(document.getElementById('ingresoMonto').value);
+  const moneda   = document.getElementById('ingresoMoneda').value;
+  const aplicar  = document.getElementById('ingresoAplicarDesc').checked;
+  const descVal  = parseFloat(document.getElementById('ingresoDescValor').value)||0;
+
   if (!fecha||!motivo||isNaN(monto)||monto<=0) { alert('Completá fecha, motivo y monto'); return; }
-  const btn=document.getElementById('saveIngresoBtn');
+  if (aplicar && descVal<=0) { alert('Ingresá el valor del descuento'); return; }
+  if (aplicar && currentTipoDesc==='porcentaje' && descVal>100) { alert('El porcentaje no puede superar 100%'); return; }
+
+  const btn = document.getElementById('saveIngresoBtn');
   btn.disabled=true; btn.textContent='Guardando...';
-  const row={fecha,motivo,monto,moneda,aplicar25};
+
+  const row = {
+    fecha, motivo, monto, moneda,
+    aplicar25: false, // siempre false en nuevos registros
+    descuento_tipo:  aplicar ? currentTipoDesc : null,
+    descuento_valor: aplicar ? descVal : null,
+  };
+
   let error;
   if (editingIngresoId) {
-    ({ error }=await sb.from('ingresos').update(row).eq('id',editingIngresoId));
-    if(!error){ const i=cache.ingresos.find(x=>x.id===editingIngresoId); Object.assign(i,row); }
+    ({ error } = await sb.from('ingresos').update(row).eq('id',editingIngresoId));
+    if (!error) { const i=cache.ingresos.find(x=>x.id===editingIngresoId); Object.assign(i,row); }
   } else {
-    const {data,error:e}=await sb.from('ingresos').insert({...row,dept_id:currentDeptId,user_id:currentUser.id}).select().single();
+    const { data, error:e } = await sb.from('ingresos').insert({...row,dept_id:currentDeptId,user_id:currentUser.id}).select().single();
     error=e;
-    if(!error) cache.ingresos.unshift({...data,deptId:data.dept_id});
+    if (!error) cache.ingresos.unshift({...data, deptId:data.dept_id});
   }
   btn.disabled=false; btn.textContent='Guardar';
-  if(error){ alert('Error: '+error.message); return; }
+  if (error) { alert('Error: '+error.message); return; }
   closeModal('modalIngreso');
   renderStats(); renderIngresos(); populateMesFiltros();
 }
 
 async function deleteIngreso(id) {
-  if(!confirm('¿Eliminar este ingreso?')) return;
-  const {error}=await sb.from('ingresos').delete().eq('id',id);
-  if(error){ alert('Error: '+error.message); return; }
-  cache.ingresos=cache.ingresos.filter(i=>i.id!==id);
+  if (!confirm('¿Eliminar este ingreso?')) return;
+  const { error } = await sb.from('ingresos').delete().eq('id',id);
+  if (error) { alert('Error: '+error.message); return; }
+  cache.ingresos = cache.ingresos.filter(i=>i.id!==id);
   renderStats(); renderIngresos(); populateMesFiltros();
 }
 
 // ── EGRESO CRUD ──
 function openEgresoModal(id) {
   editingEgresoId=id||null;
-  document.getElementById('egresoModalTitle').textContent=id?'Editar egreso':'Nuevo egreso';
+  document.getElementById('egresoModalTitle').textContent = id?'Editar egreso':'Nuevo egreso';
   if(id){ const e=cache.egresos.find(x=>x.id===id); document.getElementById('egresoFecha').value=e.fecha; document.getElementById('egresoMotivo').value=e.motivo; document.getElementById('egresoMonto').value=e.monto; }
   else { document.getElementById('egresoFecha').value=todayStr(); document.getElementById('egresoMotivo').value=''; document.getElementById('egresoMonto').value=''; }
   openModal('modalEgreso');
@@ -1020,8 +1249,11 @@ function exportDept() {
   const dept=cache.departamentos.find(d=>d.id===currentDeptId);
   const ing=cache.ingresos.filter(i=>i.deptId===currentDeptId).sort((a,b)=>a.fecha.localeCompare(b.fecha));
   const egr=cache.egresos.filter(e=>e.deptId===currentDeptId).sort((a,b)=>a.fecha.localeCompare(b.fecha));
-  let csv=`INGRESOS - ${dept.nombre}\r\nFecha,Motivo,Monto,Moneda,Aplicar 25%,Comisión,Total Neto\r\n`;
-  ing.forEach(i=>{ const com=i.aplicar25&&i.moneda!=='USD'?i.monto*0.25:0; const neto=i.moneda==='USD'?i.monto:(i.aplicar25?i.monto*0.75:i.monto); csv+=`${i.fecha},"${i.motivo}",${i.monto},${i.moneda},${i.aplicar25?'SI':'NO'},${com},${neto}\r\n`; });
+  let csv=`INGRESOS - ${dept.nombre}\r\nFecha,Motivo,Monto,Moneda,Tipo Descuento,Valor Descuento,Monto Descontado,Neto\r\n`;
+  ing.forEach(i=>{
+    const c=calcDescuento(i);
+    csv+=`${i.fecha},"${i.motivo}",${i.monto},${i.moneda},${c.descuento>0?c.label:'sin descuento'},${c.descuento>0?(i.descuento_tipo==='porcentaje'?i.descuento_valor+'%':i.descuento_valor):0},${c.descuento},${c.neto}\r\n`;
+  });
   csv+=`\r\nEGRESOS - ${dept.nombre}\r\nFecha,Motivo,Monto\r\n`;
   egr.forEach(e=>{ csv+=`${e.fecha},"${e.motivo}",${e.monto}\r\n`; });
   const blob=new Blob([csv],{type:'text/csv;charset=utf-8;'});
@@ -1029,31 +1261,24 @@ function exportDept() {
 }
 
 // ── MODAL / MOBILE HELPERS ──
-function openModal(id){ document.getElementById(id).classList.add('open') }
-function closeModal(id){ document.getElementById(id).classList.remove('open') }
-function closeModalIf(e,id){ if(e.target.id===id) closeModal(id) }
-function toggleSidebar(){ document.getElementById('sidebar').classList.toggle('open') }
-function closeSidebarMobile(){ if(window.innerWidth<=768) document.getElementById('sidebar').classList.remove('open') }
+function openModal(id)          { document.getElementById(id).classList.add('open') }
+function closeModal(id)         { document.getElementById(id).classList.remove('open') }
+function closeModalIf(e,id)     { if(e.target.id===id) closeModal(id) }
+function toggleSidebar()        { document.getElementById('sidebar').classList.toggle('open') }
+function closeSidebarMobile()   { if(window.innerWidth<=768) document.getElementById('sidebar').classList.remove('open') }
 
 // ── START ──
 async function init() {
-  // Mostrar algo de inmediato mientras carga
   document.getElementById('screenAuth').style.display = 'none';
-  document.getElementById('screenApp').style.display = 'none';
+  document.getElementById('screenApp').style.display  = 'none';
 
   let started = false;
-
-  // Timeout de seguridad: si en 5s no pasó nada, mostrar login
   const safetyTimeout = setTimeout(() => {
-    if (!started) {
-      document.getElementById('screenAuth').style.display = 'flex';
-    }
+    if (!started) document.getElementById('screenAuth').style.display = 'flex';
   }, 5000);
 
   try {
-    // Chequear sesión activa directamente
     const { data: { session } } = await sb.auth.getSession();
-
     if (session && !started) {
       started = true;
       clearTimeout(safetyTimeout);
@@ -1064,15 +1289,15 @@ async function init() {
     }
 
     sb.auth.onAuthStateChange(async (event, session) => {
-      if (event === 'SIGNED_IN' && !started) {
+      if (event==='SIGNED_IN' && !started) {
         started = true;
         clearTimeout(safetyTimeout);
         await enterApp(session.user);
       }
-      if (event === 'SIGNED_OUT') {
+      if (event==='SIGNED_OUT') {
         started = false;
-        cache = { departamentos: [], ingresos: [], egresos: [] };
-        document.getElementById('screenApp').style.display = 'none';
+        cache = { departamentos:[], ingresos:[], egresos:[] };
+        document.getElementById('screenApp').style.display  = 'none';
         document.getElementById('screenAuth').style.display = 'flex';
       }
     });
