@@ -6,6 +6,8 @@
 <title>RentaDesk</title>
 <link href="https://fonts.googleapis.com/css2?family=DM+Serif+Display:ital@0;1&family=DM+Mono:wght@400;500&family=Outfit:wght@300;400;500;600&display=swap" rel="stylesheet">
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.8.2/jspdf.plugin.autotable.min.js"></script>
 <style>
 /* ── VARIABLES ── */
 :root {
@@ -391,6 +393,7 @@ tbody td:last-child { text-align:right }
             <div class="page-subtitle" id="deptSubtitle">—</div>
           </div>
           <div class="header-actions">
+            <button class="btn btn-ghost btn-sm" onclick="openInvoiceModal()">📄 Invoice</button>
             <button class="btn btn-ghost btn-sm" onclick="exportDept()">↓ CSV</button>
             <button class="btn btn-ghost btn-sm" onclick="editCurrentDept()">✎ Editar</button>
             <button class="btn btn-danger btn-sm" id="toggleDeptBtn" onclick="toggleDeptStatus()">— Dar de baja</button>
@@ -400,7 +403,7 @@ tbody td:last-child { text-align:right }
         <div class="tabs">
           <button class="tab active" id="tabIngresos"  onclick="switchTab('ingresos')">Ingresos</button>
           <button class="tab"        id="tabEgresos"   onclick="switchTab('egresos')">Egresos</button>
-          <button class="tab"        id="tabGanancias" onclick="switchTab('ganancias')">Ganancias netas</button>
+          <button class="tab"        id="tabGanancias" onclick="switchTab('ganancias')">Mis comisiones</button>
           <button class="tab"        id="tabResumen"   onclick="switchTab('resumen')">Resumen</button>
         </div>
         <div id="panelIngresos">
@@ -522,6 +525,33 @@ tbody td:last-child { text-align:right }
     <div class="modal-actions">
       <button class="btn btn-ghost" onclick="closeModal('modalEgreso')">Cancelar</button>
       <button class="btn btn-primary" id="saveEgresoBtn" onclick="saveEgreso()">Guardar</button>
+    </div>
+  </div>
+</div>
+
+<!-- MODAL INVOICE -->
+<div class="modal-overlay" id="modalInvoice" onclick="closeModalIf(event,'modalInvoice')">
+  <div class="modal">
+    <div class="modal-title">📄 Invoice para el dueño</div>
+    <p style="font-size:13px;color:var(--text3);margin-bottom:20px;line-height:1.6">
+      Genera un resumen <strong style="color:var(--text)">sin comisiones</strong> para mostrarle al dueño del departamento. Solo verá ingresos brutos y egresos.
+    </p>
+    <div class="form-group">
+      <label class="form-label">Período</label>
+      <select class="form-select" id="invoiceMes">
+        <option value="">Todos los registros</option>
+      </select>
+    </div>
+    <div class="form-group">
+      <label class="form-label">Nota opcional</label>
+      <textarea class="form-textarea" id="invoiceNota" rows="2" placeholder="ej: Liquidación enero 2025 — Edificio Alem"></textarea>
+    </div>
+    <div style="background:var(--bg3);border-radius:var(--radius);padding:12px 14px;font-size:12px;color:var(--text3);margin-bottom:4px">
+      ⚠️ El PDF <strong style="color:var(--text)">no incluirá</strong> comisiones ni descuentos aplicados.
+    </div>
+    <div class="modal-actions">
+      <button class="btn btn-ghost" onclick="closeModal('modalInvoice')">Cancelar</button>
+      <button class="btn btn-primary" id="btnGenerarInvoice" onclick="generarInvoicePDF()">↓ Descargar PDF</button>
     </div>
   </div>
 </div>
@@ -878,63 +908,76 @@ function renderEgresos() {
   document.getElementById('tableEgresos').innerHTML = html;
 }
 
-// ── RENDER GANANCIAS NETAS ──
+// ── RENDER MIS COMISIONES (lo que gana el admin) ──
 function renderGanancias() {
-  const ing = cache.ingresos.filter(i => i.deptId===currentDeptId && i.moneda!=='USD');
+  const dept = cache.departamentos.find(d => d.id===currentDeptId);
+  const ing  = cache.ingresos.filter(i => i.deptId===currentDeptId && i.moneda!=='USD');
+
   if (ing.length===0) {
-    document.getElementById('gananciasContent').innerHTML = `<div class="empty-state"><div class="empty-icon">💰</div><div>No hay ingresos en ARS para mostrar</div></div>`;
+    document.getElementById('gananciasContent').innerHTML = `<div class="empty-state"><div class="empty-icon">💰</div><div>No hay ingresos en ARS registrados</div></div>`;
     return;
   }
 
-  // Totales resumen
-  let totalBruto=0, totalDesc=0, totalNeto=0;
-  ing.forEach(i => { const c=calcDescuento(i); totalBruto+=c.bruto; totalDesc+=c.descuento; totalNeto+=c.neto; });
-  const conDesc = ing.filter(i => calcDescuento(i).descuento > 0);
+  // Calcular comisiones (lo que se queda el admin)
+  let totalBruto=0, totalComision=0;
+  ing.forEach(i => { const c=calcDescuento(i); totalBruto+=c.bruto; totalComision+=c.descuento; });
+  const totalDuenio = totalBruto - totalComision; // lo que recibe el dueño
 
-  // Resumen arriba
+  // ── RESUMEN GLOBAL ──
   let html = `
-    <div class="ganancias-summary">
+    <div style="margin-bottom:8px;font-size:11px;text-transform:uppercase;letter-spacing:1px;color:var(--text3)">Resumen global — ${dept.nombre}</div>
+    <div class="stats-grid" style="margin-bottom:28px">
       <div class="stat-card green">
         <div class="stat-label">Ingresos brutos</div>
         <div class="stat-value green">${fmtMoney(totalBruto)}</div>
-        <div class="stat-sub">${ing.length} registros</div>
-      </div>
-      <div class="stat-card red">
-        <div class="stat-label">Total descuentos</div>
-        <div class="stat-value red">-${fmtMoney(totalDesc)}</div>
-        <div class="stat-sub">${conDesc.length} con descuento</div>
+        <div class="stat-sub">${ing.length} reservas</div>
       </div>
       <div class="stat-card purple">
-        <div class="stat-label">Ganancia neta ARS</div>
-        <div class="stat-value purple">${fmtMoney(totalNeto)}</div>
-        <div class="stat-sub">${totalBruto>0?Math.round((totalNeto/totalBruto)*100):0}% del bruto</div>
+        <div class="stat-label">Mis comisiones</div>
+        <div class="stat-value purple">${fmtMoney(totalComision)}</div>
+        <div class="stat-sub">${totalBruto>0?Math.round((totalComision/totalBruto)*100):0}% del bruto</div>
+      </div>
+      <div class="stat-card gold">
+        <div class="stat-label">Le corresponde al dueño</div>
+        <div class="stat-value gold">${fmtMoney(totalDuenio)}</div>
+        <div class="stat-sub">${totalBruto>0?Math.round((totalDuenio/totalBruto)*100):0}% del bruto</div>
       </div>
     </div>`;
 
-  // Detalle por mes
+  // ── DETALLE POR MES ──
+  html += `<div style="margin-bottom:8px;font-size:11px;text-transform:uppercase;letter-spacing:1px;color:var(--text3)">Detalle por mes</div>`;
+
   const allMonths = [...new Set(ing.map(i=>mesKey(i.fecha)))].filter(Boolean).sort().reverse();
+
+  if (allMonths.length===0) {
+    html += `<div class="empty-state" style="padding:24px"><div>Sin registros con fecha</div></div>`;
+    document.getElementById('gananciasContent').innerHTML = html;
+    return;
+  }
 
   allMonths.forEach(mk => {
     const mesRows = ing.filter(i=>mesKey(i.fecha)===mk);
-    let mBruto=0, mDesc=0, mNeto=0;
-    mesRows.forEach(i => { const c=calcDescuento(i); mBruto+=c.bruto; mDesc+=c.descuento; mNeto+=c.neto; });
+    let mBruto=0, mCom=0;
+    mesRows.forEach(i => { const c=calcDescuento(i); mBruto+=c.bruto; mCom+=c.descuento; });
+    const mDuenio = mBruto - mCom;
 
     html += `
       <div class="table-container" style="margin-bottom:16px">
         <div class="table-toolbar">
           <span class="table-title">${mesLabel(mk)}</span>
-          <div style="display:flex;gap:16px;font-size:12px;font-family:'DM Mono',monospace">
+          <div style="display:flex;gap:20px;font-size:12px;font-family:'DM Mono',monospace;align-items:center">
             <span style="color:var(--text3)">Bruto: <span style="color:var(--text)">${fmtMoney(mBruto)}</span></span>
-            <span style="color:var(--red)">-${fmtMoney(mDesc)}</span>
-            <span style="color:var(--purple);font-weight:600">= ${fmtMoney(mNeto)}</span>
+            <span style="color:var(--purple)">Comisión: <strong>${fmtMoney(mCom)}</strong></span>
+            <span style="color:var(--accent)">Dueño: ${fmtMoney(mDuenio)}</span>
           </div>
         </div>
         <table>
           <thead><tr>
-            <th>Fecha</th><th>Motivo</th>
+            <th>Fecha</th>
+            <th>Motivo</th>
             <th style="text-align:right">Bruto</th>
-            <th style="text-align:right">Descuento</th>
-            <th style="text-align:right">Neto</th>
+            <th style="text-align:right">Mi comisión</th>
+            <th style="text-align:right">Para el dueño</th>
           </tr></thead>
           <tbody>`;
 
@@ -946,10 +989,10 @@ function renderGanancias() {
         <td style="text-align:right;font-family:'DM Mono',monospace;font-size:13px;color:var(--green)">${fmtMoney(c.bruto)}</td>
         <td style="text-align:right">
           ${c.descuento>0
-            ? `<span class="badge badge-red">-${fmtMoney(c.descuento)} <span style="opacity:.7;font-size:10px">${c.label}</span></span>`
-            : '<span class="badge badge-gray">sin desc.</span>'}
+            ? `<span class="badge badge-purple">${fmtMoney(c.descuento)} <span style="opacity:.7;font-size:10px">${c.label}</span></span>`
+            : `<span class="badge badge-gray">—</span>`}
         </td>
-        <td style="text-align:right;font-family:'DM Mono',monospace;font-size:13px;color:var(--purple);font-weight:500">${fmtMoney(c.neto)}</td>
+        <td style="text-align:right;font-family:'DM Mono',monospace;font-size:13px;color:var(--accent);font-weight:500">${fmtMoney(c.neto)}</td>
       </tr>`;
     });
 
@@ -957,14 +1000,313 @@ function renderGanancias() {
           <tfoot><tr style="border-top:2px solid var(--border2)">
             <td colspan="2" style="padding:10px 14px;font-size:11px;font-weight:600;color:var(--text2)">TOTAL ${mesLabel(mk).toUpperCase()}</td>
             <td style="padding:10px 14px;text-align:right;font-family:'DM Mono',monospace;font-size:12px;color:var(--green)">${fmtMoney(mBruto)}</td>
-            <td style="padding:10px 14px;text-align:right;font-family:'DM Mono',monospace;font-size:12px;color:var(--red)">-${fmtMoney(mDesc)}</td>
-            <td style="padding:10px 14px;text-align:right;font-family:'DM Mono',monospace;font-size:13px;font-weight:600;color:var(--purple)">${fmtMoney(mNeto)}</td>
+            <td style="padding:10px 14px;text-align:right;font-family:'DM Mono',monospace;font-size:12px;color:var(--purple);font-weight:600">${fmtMoney(mCom)}</td>
+            <td style="padding:10px 14px;text-align:right;font-family:'DM Mono',monospace;font-size:13px;font-weight:600;color:var(--accent)">${fmtMoney(mDuenio)}</td>
           </tr></tfoot>
         </table>
       </div>`;
   });
 
   document.getElementById('gananciasContent').innerHTML = html;
+}
+
+// ── INVOICE MODAL ──
+function openInvoiceModal() {
+  const ing = cache.ingresos.filter(i=>i.deptId===currentDeptId);
+  const egr = cache.egresos.filter(e=>e.deptId===currentDeptId);
+  const allMonths = [...new Set([...ing.map(i=>mesKey(i.fecha)),...egr.map(e=>mesKey(e.fecha))])].filter(Boolean).sort().reverse();
+  const sel = document.getElementById('invoiceMes');
+  sel.innerHTML = '<option value="">Todos los registros</option>' + allMonths.map(m=>`<option value="${m}">${mesLabel(m)}</option>`).join('');
+  // preseleccionar el mes más reciente
+  if (allMonths.length>0) sel.value = allMonths[0];
+  document.getElementById('invoiceNota').value = '';
+  openModal('modalInvoice');
+}
+
+// ── GENERAR PDF INVOICE ──
+function generarInvoicePDF() {
+  const { jsPDF } = window.jspdf;
+  const dept  = cache.departamentos.find(d=>d.id===currentDeptId);
+  const mesFiltro = document.getElementById('invoiceMes').value;
+  const nota  = document.getElementById('invoiceNota').value.trim();
+  const btn   = document.getElementById('btnGenerarInvoice');
+
+  let ing = cache.ingresos.filter(i=>i.deptId===currentDeptId).sort((a,b)=>a.fecha.localeCompare(b.fecha));
+  let egr = cache.egresos.filter(e=>e.deptId===currentDeptId).sort((a,b)=>a.fecha.localeCompare(b.fecha));
+  if (mesFiltro) {
+    ing = ing.filter(i=>mesKey(i.fecha)===mesFiltro);
+    egr = egr.filter(e=>mesKey(e.fecha)===mesFiltro);
+  }
+
+  if (ing.length===0 && egr.length===0) {
+    alert('No hay registros para el período seleccionado'); return;
+  }
+
+  btn.disabled=true; btn.textContent='Generando...';
+
+  try {
+    const doc = new jsPDF({ orientation:'portrait', unit:'mm', format:'a4' });
+    const W = doc.internal.pageSize.getWidth();
+    const fechaHoy = new Date().toLocaleDateString('es-AR', {day:'2-digit',month:'long',year:'numeric'});
+    const periodoLabel = mesFiltro ? mesLabel(mesFiltro) : 'Todos los períodos';
+
+    // ── Paleta colores ──
+    const C = {
+      bg:      [15, 15, 15],
+      bg2:     [22, 22, 22],
+      bg3:     [30, 30, 30],
+      border:  [42, 42, 42],
+      text:    [240, 237, 232],
+      text2:   [154, 150, 144],
+      text3:   [90,  88,  85],
+      accent:  [232, 201, 122],
+      green:   [111, 207, 151],
+      red:     [235, 87,  87],
+    };
+
+    // ── Fondo oscuro full page ──
+    doc.setFillColor(...C.bg);
+    doc.rect(0, 0, W, 297, 'F');
+
+    // ── Header band ──
+    doc.setFillColor(...C.bg2);
+    doc.rect(0, 0, W, 42, 'F');
+
+    // Línea accent superior
+    doc.setFillColor(...C.accent);
+    doc.rect(0, 0, W, 2, 'F');
+
+    // Logo "RentaDesk"
+    doc.setFont('helvetica','bold');
+    doc.setFontSize(22);
+    doc.setTextColor(...C.accent);
+    doc.text('RentaDesk', 14, 16);
+
+    // Subtítulo logo
+    doc.setFont('helvetica','normal');
+    doc.setFontSize(7.5);
+    doc.setTextColor(...C.text3);
+    doc.text('GESTIÓN DE ALQUILERES', 14, 21.5);
+
+    // Título INVOICE
+    doc.setFont('helvetica','bold');
+    doc.setFontSize(11);
+    doc.setTextColor(...C.text2);
+    doc.text('LIQUIDACIÓN PARA EL PROPIETARIO', W-14, 13, {align:'right'});
+
+    // Fecha
+    doc.setFont('helvetica','normal');
+    doc.setFontSize(9);
+    doc.setTextColor(...C.text3);
+    doc.text(fechaHoy, W-14, 20, {align:'right'});
+
+    // Período
+    doc.setFont('helvetica','bold');
+    doc.setFontSize(9);
+    doc.setTextColor(...C.accent);
+    doc.text(periodoLabel.toUpperCase(), W-14, 27, {align:'right'});
+
+    // ── Info del departamento ──
+    doc.setFillColor(...C.bg3);
+    doc.roundedRect(14, 48, W-28, 22, 2, 2, 'F');
+
+    doc.setFont('helvetica','bold');
+    doc.setFontSize(13);
+    doc.setTextColor(...C.text);
+    doc.text(dept.nombre, 20, 57);
+
+    if (dept.direccion) {
+      doc.setFont('helvetica','normal');
+      doc.setFontSize(9);
+      doc.setTextColor(...C.text2);
+      doc.text(dept.direccion, 20, 64);
+    }
+
+    // Nota opcional
+    let yPos = 78;
+    if (nota) {
+      doc.setFillColor(42, 42, 42);
+      doc.roundedRect(14, yPos-5, W-28, 14, 2, 2, 'F');
+      doc.setFont('helvetica','italic');
+      doc.setFontSize(9);
+      doc.setTextColor(...C.text2);
+      doc.text(nota, 20, yPos+2);
+      yPos += 18;
+    }
+
+    // ── Tabla INGRESOS ──
+    if (ing.length > 0) {
+      // Título sección
+      doc.setFont('helvetica','bold');
+      doc.setFontSize(9);
+      doc.setTextColor(...C.text3);
+      doc.text('INGRESOS', 14, yPos);
+
+      // Línea decorativa
+      doc.setDrawColor(...C.green);
+      doc.setLineWidth(0.6);
+      doc.line(14, yPos+2, 40, yPos+2);
+
+      yPos += 6;
+
+      // Separar ARS y USD
+      const ingARS = ing.filter(i=>i.moneda!=='USD');
+      const ingUSD = ing.filter(i=>i.moneda==='USD');
+
+      // Tabla ARS — usar monto BRUTO (sin descuentos, el dueño no sabe de comisiones)
+      if (ingARS.length > 0) {
+        const rowsARS = ingARS.map(i => [i.fecha, i.motivo, `$ ${fmt(i.monto)}`]);
+        const totalARS = ingARS.reduce((s,i)=>s+i.monto, 0);
+
+        doc.autoTable({
+          startY: yPos,
+          head: [['Fecha', 'Concepto', 'Monto ARS']],
+          body: rowsARS,
+          foot: [['', 'TOTAL', `$ ${fmt(totalARS)}`]],
+          margin: {left:14, right:14},
+          styles: {
+            font: 'helvetica', fontSize: 9, cellPadding: 3.5,
+            fillColor: C.bg2, textColor: C.text, lineColor: C.border, lineWidth: 0.3,
+          },
+          headStyles: {
+            fillColor: C.bg3, textColor: C.text3, fontStyle:'bold', fontSize:8,
+          },
+          footStyles: {
+            fillColor: C.bg3, textColor: C.green, fontStyle:'bold',
+          },
+          columnStyles: {
+            0: {cellWidth:28, textColor:C.text3},
+            1: {cellWidth:'auto'},
+            2: {cellWidth:32, halign:'right', textColor:C.green, fontStyle:'bold'},
+          },
+          alternateRowStyles: { fillColor: C.bg3 },
+          tableLineColor: C.border,
+          tableLineWidth: 0.3,
+        });
+        yPos = doc.lastAutoTable.finalY + 6;
+      }
+
+      // Tabla USD
+      if (ingUSD.length > 0) {
+        const rowsUSD = ingUSD.map(i => [i.fecha, i.motivo, `U$D ${fmt(i.monto,2)}`]);
+        const totalUSD = ingUSD.reduce((s,i)=>s+i.monto, 0);
+
+        doc.autoTable({
+          startY: yPos,
+          head: [['Fecha', 'Concepto', 'Monto USD']],
+          body: rowsUSD,
+          foot: [['', 'TOTAL', `U$D ${fmt(totalUSD,2)}`]],
+          margin: {left:14, right:14},
+          styles: {
+            font:'helvetica', fontSize:9, cellPadding:3.5,
+            fillColor:C.bg2, textColor:C.text, lineColor:C.border, lineWidth:0.3,
+          },
+          headStyles: { fillColor:C.bg3, textColor:C.text3, fontStyle:'bold', fontSize:8 },
+          footStyles: { fillColor:C.bg3, textColor:C.accent, fontStyle:'bold' },
+          columnStyles: {
+            0: {cellWidth:28, textColor:C.text3},
+            1: {cellWidth:'auto'},
+            2: {cellWidth:32, halign:'right', textColor:C.accent, fontStyle:'bold'},
+          },
+          alternateRowStyles: { fillColor:C.bg3 },
+          tableLineColor:C.border, tableLineWidth:0.3,
+        });
+        yPos = doc.lastAutoTable.finalY + 6;
+      }
+    }
+
+    // ── Tabla EGRESOS ──
+    if (egr.length > 0) {
+      yPos += 4;
+      doc.setFont('helvetica','bold');
+      doc.setFontSize(9);
+      doc.setTextColor(...C.text3);
+      doc.text('EGRESOS', 14, yPos);
+
+      doc.setDrawColor(...C.red);
+      doc.setLineWidth(0.6);
+      doc.line(14, yPos+2, 38, yPos+2);
+      yPos += 6;
+
+      const rowsEgr = egr.map(e => [e.fecha, e.motivo, `$ ${fmt(e.monto)}`]);
+      const totalEgr = egr.reduce((s,e)=>s+e.monto, 0);
+
+      doc.autoTable({
+        startY: yPos,
+        head: [['Fecha', 'Concepto', 'Monto']],
+        body: rowsEgr,
+        foot: [['', 'TOTAL', `$ ${fmt(totalEgr)}`]],
+        margin: {left:14, right:14},
+        styles: {
+          font:'helvetica', fontSize:9, cellPadding:3.5,
+          fillColor:C.bg2, textColor:C.text, lineColor:C.border, lineWidth:0.3,
+        },
+        headStyles: { fillColor:C.bg3, textColor:C.text3, fontStyle:'bold', fontSize:8 },
+        footStyles: { fillColor:C.bg3, textColor:[235,87,87], fontStyle:'bold' },
+        columnStyles: {
+          0: {cellWidth:28, textColor:C.text3},
+          1: {cellWidth:'auto'},
+          2: {cellWidth:32, halign:'right', textColor:[235,87,87], fontStyle:'bold'},
+        },
+        alternateRowStyles: { fillColor:C.bg3 },
+        tableLineColor:C.border, tableLineWidth:0.3,
+      });
+      yPos = doc.lastAutoTable.finalY + 8;
+    }
+
+    // ── Balance final ──
+    const totalIngARS = ing.filter(i=>i.moneda!=='USD').reduce((s,i)=>s+i.monto, 0);
+    const totalEgrARS = egr.reduce((s,e)=>s+e.monto, 0);
+    const balance     = totalIngARS - totalEgrARS;
+    const balColor    = balance >= 0 ? C.green : C.red;
+
+    doc.setFillColor(...C.bg2);
+    doc.roundedRect(14, yPos, W-28, 20, 2, 2, 'F');
+    doc.setDrawColor(...C.border);
+    doc.setLineWidth(0.3);
+    doc.roundedRect(14, yPos, W-28, 20, 2, 2, 'S');
+
+    doc.setFont('helvetica','normal');
+    doc.setFontSize(9);
+    doc.setTextColor(...C.text3);
+    doc.text('BALANCE DEL PERÍODO', 20, yPos+8);
+
+    doc.setFont('helvetica','bold');
+    doc.setFontSize(14);
+    doc.setTextColor(...balColor);
+    doc.text(`${balance>=0?'+':''}$ ${fmt(balance)}`, W-20, yPos+12, {align:'right'});
+
+    if (ing.filter(i=>i.moneda==='USD').length>0) {
+      const totalUSD = ing.filter(i=>i.moneda==='USD').reduce((s,i)=>s+i.monto,0);
+      doc.setFont('helvetica','normal');
+      doc.setFontSize(8.5);
+      doc.setTextColor(...C.accent);
+      doc.text(`+ U$D ${fmt(totalUSD,2)} (no incluidos en balance ARS)`, W-20, yPos+19, {align:'right'});
+    }
+
+    // ── Footer ──
+    const pageCount = doc.internal.getNumberOfPages();
+    for(let p=1;p<=pageCount;p++){
+      doc.setPage(p);
+      doc.setFillColor(...C.bg2);
+      doc.rect(0, 285, W, 12, 'F');
+      doc.setFont('helvetica','normal');
+      doc.setFontSize(7.5);
+      doc.setTextColor(...C.text3);
+      doc.text('Generado por RentaDesk · rentadesk.vercel.app', 14, 292);
+      doc.text(`Pág. ${p} / ${pageCount}`, W-14, 292, {align:'right'});
+    }
+
+    // ── Descargar ──
+    const nombreArchivo = `Invoice_${dept.nombre.replace(/\s+/g,'_')}_${mesFiltro||'completo'}.pdf`;
+    doc.save(nombreArchivo);
+    closeModal('modalInvoice');
+  } catch(err) {
+    console.error('PDF error:', err);
+    alert('Error generando el PDF: ' + err.message);
+  } finally {
+    btn.disabled=false; btn.textContent='↓ Descargar PDF';
+  }
 }
 
 // ── RENDER RESUMEN ──
