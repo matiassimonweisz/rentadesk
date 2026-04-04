@@ -921,12 +921,9 @@ function renderGanancias() {
   // ── Totales ARS ──
   let tBrutoARS=0, tComARS=0;
   ingARS.forEach(i => { const c=getComision(i); tBrutoARS+=i.monto; tComARS+=c.ars; });
-  const tDuenioARS = tBrutoARS - tComARS;
-
   // ── Totales USD ──
   let tBrutoUSD=0, tComUSD=0;
   ingUSD.forEach(i => { const c=getComision(i); tBrutoUSD+=i.monto; tComUSD+=c.usd; });
-  const tDuenioUSD = tBrutoUSD - tComUSD;
 
   // ── RESUMEN GLOBAL ──
   let html = `
@@ -944,11 +941,7 @@ function renderGanancias() {
         <div class="stat-value purple">${fmtMoney(tComARS)}</div>
         <div class="stat-sub">${tBrutoARS>0?Math.round((tComARS/tBrutoARS)*100):0}% del bruto</div>
       </div>
-      <div class="stat-card gold">
-        <div class="stat-label">Para el dueño ARS</div>
-        <div class="stat-value gold">${fmtMoney(tDuenioARS)}</div>
-        <div class="stat-sub">${tBrutoARS>0?Math.round((tDuenioARS/tBrutoARS)*100):0}% del bruto</div>
-      </div>`;
+`;
 
   if (ingUSD.length > 0) html += `
       <div class="stat-card green">
@@ -961,11 +954,7 @@ function renderGanancias() {
         <div class="stat-value purple">${fmtMoney(tComUSD,'USD')}</div>
         <div class="stat-sub">${tBrutoUSD>0?Math.round((tComUSD/tBrutoUSD)*100):0}% del bruto</div>
       </div>
-      <div class="stat-card gold">
-        <div class="stat-label">Para el dueño USD</div>
-        <div class="stat-value gold">${fmtMoney(tDuenioUSD,'USD')}</div>
-        <div class="stat-sub">${tBrutoUSD>0?Math.round((tDuenioUSD/tBrutoUSD)*100):0}% del bruto</div>
-      </div>`;
+`;
 
   html += `</div>`;
 
@@ -993,7 +982,6 @@ function renderGananciasMes(ingresos, moneda) {
     const mesRows = ingresos.filter(i=>mesKey(i.fecha)===mk);
     let mBruto=0, mCom=0;
     mesRows.forEach(i => { const c=getComision(i); mBruto+=i.monto; mCom+=(moneda==='USD'?c.usd:c.ars); });
-    const mDuenio = mBruto - mCom;
 
     html += `
       <div class="table-container" style="margin-bottom:16px">
@@ -1002,7 +990,6 @@ function renderGananciasMes(ingresos, moneda) {
           <div style="display:flex;gap:20px;font-size:12px;font-family:'DM Mono',monospace;align-items:center">
             <span style="color:var(--text3)">Bruto: <span style="color:var(--text)">${fmtMoney(mBruto,moneda)}</span></span>
             <span style="color:var(--purple)">Comisión: <strong>${fmtMoney(mCom,moneda)}</strong></span>
-            <span style="color:var(--accent)">Dueño: ${fmtMoney(mDuenio,moneda)}</span>
           </div>
         </div>
         <table>
@@ -1011,14 +998,12 @@ function renderGananciasMes(ingresos, moneda) {
             <th>Motivo</th>
             <th style="text-align:right">Bruto</th>
             <th style="text-align:right">Mi comisión</th>
-            <th style="text-align:right">Para el dueño</th>
           </tr></thead>
           <tbody>`;
 
     mesRows.forEach(i => {
       const c = getComision(i);
       const comVal = moneda==='USD' ? c.usd : c.ars;
-      const duenio = i.monto - comVal;
       html += `<tr>
         <td class="td-date">${i.fecha}</td>
         <td class="td-motivo">${i.motivo}</td>
@@ -1028,7 +1013,6 @@ function renderGananciasMes(ingresos, moneda) {
             ? `<span class="badge badge-purple">${fmtMoney(comVal,moneda)}</span>`
             : `<span class="badge badge-gray">—</span>`}
         </td>
-        <td style="text-align:right;font-family:'DM Mono',monospace;font-size:13px;color:var(--accent);font-weight:500">${fmtMoney(duenio,moneda)}</td>
       </tr>`;
     });
 
@@ -1037,7 +1021,6 @@ function renderGananciasMes(ingresos, moneda) {
             <td colspan="2" style="padding:10px 14px;font-size:11px;font-weight:600;color:var(--text2)">TOTAL ${mesLabel(mk).toUpperCase()}</td>
             <td style="padding:10px 14px;text-align:right;font-family:'DM Mono',monospace;font-size:12px;color:var(--green)">${fmtMoney(mBruto,moneda)}</td>
             <td style="padding:10px 14px;text-align:right;font-family:'DM Mono',monospace;font-size:12px;color:var(--purple);font-weight:600">${fmtMoney(mCom,moneda)}</td>
-            <td style="padding:10px 14px;text-align:right;font-family:'DM Mono',monospace;font-size:13px;font-weight:600;color:var(--accent)">${fmtMoney(mBruto-mCom,moneda)}</td>
           </tr></tfoot>
         </table>
       </div>`;
