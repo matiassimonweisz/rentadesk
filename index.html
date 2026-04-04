@@ -537,6 +537,10 @@ tbody td:last-child { text-align:right }
       Genera un resumen <strong style="color:var(--text)">sin comisiones</strong> para mostrarle al dueño del departamento. Solo verá ingresos brutos y egresos.
     </p>
     <div class="form-group">
+      <label class="form-label">Departamento</label>
+      <select class="form-select" id="invoiceDept" onchange="actualizarMesesInvoice()"></select>
+    </div>
+    <div class="form-group">
       <label class="form-label">Período</label>
       <select class="form-select" id="invoiceMes">
         <option value="">Todos los registros</option>
@@ -1055,27 +1059,41 @@ function renderGananciasMes(ingresos, moneda) {
 
 // ── INVOICE MODAL ──
 function openInvoiceModal() {
-  const ing = cache.ingresos.filter(i=>i.deptId===currentDeptId);
-  const egr = cache.egresos.filter(e=>e.deptId===currentDeptId);
+  // Poblar selector de departamentos (solo activos)
+  const depts = cache.departamentos.filter(d => d.activo !== false);
+  const selDept = document.getElementById('invoiceDept');
+  selDept.innerHTML = depts.map(d =>
+    `<option value="${d.id}" ${d.id===currentDeptId?'selected':''}>${d.nombre}</option>`
+  ).join('');
+
+  // Poblar meses según el depto seleccionado
+  actualizarMesesInvoice();
+
+  document.getElementById('invoiceNota').value = '';
+  openModal('modalInvoice');
+}
+
+function actualizarMesesInvoice() {
+  const deptId = document.getElementById('invoiceDept').value;
+  const ing = cache.ingresos.filter(i=>i.deptId===deptId);
+  const egr = cache.egresos.filter(e=>e.deptId===deptId);
   const allMonths = [...new Set([...ing.map(i=>mesKey(i.fecha)),...egr.map(e=>mesKey(e.fecha))])].filter(Boolean).sort().reverse();
   const sel = document.getElementById('invoiceMes');
   sel.innerHTML = '<option value="">Todos los registros</option>' + allMonths.map(m=>`<option value="${m}">${mesLabel(m)}</option>`).join('');
-  // preseleccionar el mes más reciente
-  if (allMonths.length>0) sel.value = allMonths[0];
-  document.getElementById('invoiceNota').value = '';
-  openModal('modalInvoice');
+  if (allMonths.length > 0) sel.value = allMonths[0];
 }
 
 // ── GENERAR PDF INVOICE ──
 function generarInvoicePDF() {
   const { jsPDF } = window.jspdf;
-  const dept  = cache.departamentos.find(d=>d.id===currentDeptId);
+  const deptId = document.getElementById('invoiceDept').value;
+  const dept  = cache.departamentos.find(d=>d.id===deptId);
   const mesFiltro = document.getElementById('invoiceMes').value;
   const nota  = document.getElementById('invoiceNota').value.trim();
   const btn   = document.getElementById('btnGenerarInvoice');
 
-  let ing = cache.ingresos.filter(i=>i.deptId===currentDeptId).sort((a,b)=>a.fecha.localeCompare(b.fecha));
-  let egr = cache.egresos.filter(e=>e.deptId===currentDeptId).sort((a,b)=>a.fecha.localeCompare(b.fecha));
+  let ing = cache.ingresos.filter(i=>i.deptId===deptId).sort((a,b)=>a.fecha.localeCompare(b.fecha));
+  let egr = cache.egresos.filter(e=>e.deptId===deptId).sort((a,b)=>a.fecha.localeCompare(b.fecha));
   if (mesFiltro) {
     ing = ing.filter(i=>mesKey(i.fecha)===mesFiltro);
     egr = egr.filter(e=>mesKey(e.fecha)===mesFiltro);
