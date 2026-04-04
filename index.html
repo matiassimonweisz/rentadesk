@@ -487,24 +487,28 @@ tbody td:last-child { text-align:right }
       </div>
     </div>
     <div class="form-group"><label class="form-label">Motivo *</label><input class="form-input" id="ingresoMotivo" placeholder="ej: Reserva Airbnb 4 al 8/1 — JUAN" /></div>
-    <div class="form-group"><label class="form-label">Monto *</label><input type="number" class="form-input" id="ingresoMonto" placeholder="0.00" step="0.01" oninput="updatePreview()" /></div>
+    <div class="form-group"><label class="form-label">Monto *</label><input type="number" class="form-input" id="ingresoMonto" placeholder="0.00" step="0.01" /></div>
 
-    <!-- DESCUENTO -->
-    <div class="form-check">
-      <input type="checkbox" id="ingresoAplicarDesc" onchange="toggleDescuento()">
-      <label for="ingresoAplicarDesc">Aplicar descuento / comisión</label>
-    </div>
-    <div class="descuento-panel" id="descuentoPanel" style="display:none">
-      <div class="descuento-tipo-row">
-        <button class="tipo-btn active" id="tipoPorcentaje" onclick="setTipoDesc('porcentaje')">% Porcentaje</button>
-        <button class="tipo-btn" id="tipoFijo" onclick="setTipoDesc('fijo')">$ Monto fijo</button>
+    <!-- COMISIÓN INFORMATIVA -->
+    <div style="background:var(--bg3);border:1px solid var(--border2);border-radius:var(--radius);padding:14px;margin-bottom:16px">
+      <div style="font-size:11px;font-weight:600;color:var(--text3);text-transform:uppercase;letter-spacing:0.5px;margin-bottom:12px">Comisión del administrador <span style="font-weight:400;opacity:.6">(opcional)</span></div>
+      <div class="form-row">
+        <div class="form-group" style="margin-bottom:0">
+          <label class="form-label">En pesos (ARS)</label>
+          <div style="position:relative">
+            <span style="position:absolute;left:10px;top:50%;transform:translateY(-50%);color:var(--text3);font-size:13px;pointer-events:none">$</span>
+            <input type="number" class="form-input" id="comisionARS" placeholder="0" step="0.01" min="0" style="padding-left:22px" />
+          </div>
+        </div>
+        <div class="form-group" style="margin-bottom:0">
+          <label class="form-label">En dólares (USD)</label>
+          <div style="position:relative">
+            <span style="position:absolute;left:10px;top:50%;transform:translateY(-50%);color:var(--text3);font-size:13px;pointer-events:none">U$D</span>
+            <input type="number" class="form-input" id="comisionUSD" placeholder="0.00" step="0.01" min="0" style="padding-left:38px" />
+          </div>
+        </div>
       </div>
-      <div class="descuento-input-row">
-        <input type="number" class="form-input" id="ingresoDescValor" placeholder="0" step="0.01" min="0" oninput="updatePreview()" style="flex:1" />
-        <span class="descuento-suffix" id="descSuffix">%</span>
-      </div>
     </div>
-    <div class="preview-box" id="previewDesc"></div>
 
     <div class="modal-actions">
       <button class="btn btn-ghost" onclick="closeModal('modalIngreso')">Cancelar</button>
@@ -578,8 +582,6 @@ let currentTab    = 'ingresos';
 let editingDeptId     = null;
 let editingIngresoId  = null;
 let editingEgresoId   = null;
-let currentTipoDesc   = 'porcentaje'; // 'porcentaje' | 'fijo'
-
 let cache = { departamentos: [], ingresos: [], egresos: [] };
 
 // ── UTILS ──
@@ -590,32 +592,26 @@ const mesKey   = f => { if(!f) return ''; const d = new Date(f+'T12:00:00'); ret
 const mesLabel = k => { if(!k) return ''; const [y,m]=k.split('-'); return meses[parseInt(m)-1]+' '+y };
 const todayStr = () => new Date().toISOString().slice(0,10);
 
-// ── DESCUENTO HELPERS ──
-// Calcula el monto descontado y el neto para un ingreso.
-// Soporta tanto el formato viejo (aplicar25) como el nuevo (descuento_tipo + descuento_valor).
-function calcDescuento(ingreso) {
-  const bruto = ingreso.monto || 0;
-
-  // Formato NUEVO: descuento_tipo definido
-  if (ingreso.descuento_tipo) {
-    const val = ingreso.descuento_valor || 0;
-    if (ingreso.descuento_tipo === 'porcentaje') {
-      const desc = bruto * (val / 100);
-      return { bruto, descuento: desc, neto: bruto - desc, label: `${val}%` };
-    } else { // fijo
-      const desc = Math.min(val, bruto);
-      return { bruto, descuento: desc, neto: bruto - desc, label: `$ ${fmt(val)}` };
+// ── COMISIÓN HELPERS ──
+// Lee los campos de comisión informativa de un ingreso.
+// El monto del ingreso NUNCA se modifica — la comisión es solo un registro aparte.
+function getComision(ingreso) {
+  const ars = ingreso.comision_ars || 0;
+  const usd = ingreso.comision_usd || 0;
+  // Compatibilidad con registros viejos que tenían aplicar25 / descuento_tipo
+  if (ars === 0 && usd === 0) {
+    if (ingreso.descuento_tipo === 'porcentaje' && ingreso.descuento_valor) {
+      const c = (ingreso.monto || 0) * (ingreso.descuento_valor / 100);
+      return ingreso.moneda === 'USD' ? { ars: 0, usd: c } : { ars: c, usd: 0 };
+    }
+    if (ingreso.descuento_tipo === 'fijo' && ingreso.descuento_valor) {
+      return ingreso.moneda === 'USD' ? { ars: 0, usd: ingreso.descuento_valor } : { ars: ingreso.descuento_valor, usd: 0 };
+    }
+    if (ingreso.aplicar25 && ingreso.moneda !== 'USD') {
+      return { ars: (ingreso.monto || 0) * 0.25, usd: 0 };
     }
   }
-
-  // Formato VIEJO: aplicar25 (compatibilidad) — solo aplicaba en ARS
-  if (ingreso.aplicar25 && ingreso.moneda !== 'USD') {
-    const desc = bruto * 0.25;
-    return { bruto, descuento: desc, neto: bruto - desc, label: '25%' };
-  }
-
-  // Sin descuento
-  return { bruto, descuento: 0, neto: bruto, label: null };
+  return { ars, usd };
 }
 
 // ── AUTH ──
@@ -755,8 +751,8 @@ function renderOverview() {
   let tIng=0, tEgr=0, tUSD=0, tDesc=0;
   depts.forEach(d => {
     cache.ingresos.filter(i=>i.deptId===d.id).forEach(i => {
-      if (i.moneda==='USD') { const c=calcDescuento(i); tUSD+=c.neto; }
-      else { const c=calcDescuento(i); tIng+=c.neto; tDesc+=c.descuento; }
+      if (i.moneda==='USD') tUSD+=i.monto;
+      else tIng+=i.monto;
     });
     cache.egresos.filter(e=>e.deptId===d.id).forEach(e => tEgr+=e.monto);
   });
@@ -772,7 +768,7 @@ function renderOverview() {
   } else {
     depts.forEach(d => {
       let di=0,de=0,du=0;
-      cache.ingresos.filter(i=>i.deptId===d.id).forEach(i => { if(i.moneda==='USD') { const c=calcDescuento(i); du+=c.neto; } else { const c=calcDescuento(i); di+=c.neto; } });
+      cache.ingresos.filter(i=>i.deptId===d.id).forEach(i => { if(i.moneda==='USD') du+=i.monto; else di+=i.monto; });
       cache.egresos.filter(e=>e.deptId===d.id).forEach(e => de+=e.monto);
       const db=di-de;
       html += `<div class="overview-dept-card" onclick="selectDept('${d.id}')">
@@ -807,17 +803,13 @@ function renderDeptView() {
 function renderStats() {
   const ing = cache.ingresos.filter(i => i.deptId===currentDeptId);
   const egr = cache.egresos.filter(e => e.deptId===currentDeptId);
-  let ars=0, usd=0, tot=0, desc=0;
-  ing.forEach(i => {
-    const c = calcDescuento(i);
-    if (i.moneda==='USD') usd += c.neto;
-    else { ars += c.neto; desc += c.descuento; }
-  });
+  let ars=0, usd=0, tot=0;
+  ing.forEach(i => { if (i.moneda==='USD') usd+=i.monto; else ars+=i.monto; });
   egr.forEach(e => tot+=e.monto);
   const bal=ars-tot;
   document.getElementById('deptStats').innerHTML = `
-    <div class="stat-card green"><div class="stat-label">Ingresos netos ARS</div><div class="stat-value green">${fmtMoney(ars)}</div><div class="stat-sub">${ing.filter(i=>i.moneda!=='USD').length} registros</div></div>
-    <div class="stat-card gold"><div class="stat-label">Ingresos netos USD</div><div class="stat-value gold">${fmtMoney(usd,'USD')}</div><div class="stat-sub">${ing.filter(i=>i.moneda==='USD').length} registros</div></div>
+    <div class="stat-card green"><div class="stat-label">Ingresos ARS</div><div class="stat-value green">${fmtMoney(ars)}</div><div class="stat-sub">${ing.filter(i=>i.moneda!=='USD').length} registros</div></div>
+    <div class="stat-card gold"><div class="stat-label">Ingresos USD</div><div class="stat-value gold">${fmtMoney(usd,'USD')}</div><div class="stat-sub">${ing.filter(i=>i.moneda==='USD').length} registros</div></div>
     <div class="stat-card red"><div class="stat-label">Total egresos</div><div class="stat-value red">${fmtMoney(tot)}</div><div class="stat-sub">${egr.length} registros</div></div>
     <div class="stat-card ${bal>=0?'green':'red'}"><div class="stat-label">Balance ARS</div><div class="stat-value ${bal>=0?'green':'red'}">${fmtMoney(bal)}</div></div>`;
 }
@@ -853,41 +845,35 @@ function renderIngresos() {
     document.getElementById('tableIngresos').innerHTML = `<div class="empty-state"><div class="empty-icon">📥</div><div style="margin-bottom:16px">Sin ingresos registrados</div><button class="btn btn-primary btn-sm" onclick="openIngresoModal()">+ Agregar ingreso</button></div>`;
     return;
   }
-  let html = `<table><thead><tr><th>Fecha</th><th>Motivo</th><th>Bruto</th><th>Descuento</th><th>Neto</th><th></th></tr></thead><tbody>`;
+  let html = `<table><thead><tr><th>Fecha</th><th>Motivo</th><th>Monto</th><th>Comisión admin</th><th></th></tr></thead><tbody>`;
   rows.forEach(i => {
-    const c = calcDescuento(i);
-    const esUSD = i.moneda === 'USD';
+    const c = getComision(i);
+    const hayComARS = c.ars > 0;
+    const hayComUSD = c.usd > 0;
     html += `<tr>
       <td class="td-date">${i.fecha}</td>
       <td class="td-motivo">${i.motivo}</td>
       <td class="td-amount ingreso">${fmtMoney(i.monto, i.moneda)}</td>
-      <td>${c.descuento>0
-          ? `<span class="badge badge-red">-${fmtMoney(c.descuento)} <span style="opacity:.7;font-size:10px">${c.label}</span></span>`
-          : '<span class="badge badge-gray">—</span>'}</td>
-      <td class="td-amount">${esUSD
-          ? `<span class="badge badge-gold">${fmtMoney(i.monto,'USD')}</span>`
-          : fmtMoney(c.neto)}</td>
+      <td>
+        ${hayComARS ? `<span class="badge badge-purple" style="margin-bottom:2px">$ ${fmt(c.ars)}</span>` : ''}
+        ${hayComUSD ? `<span class="badge badge-purple">U$D ${fmt(c.usd,2)}</span>` : ''}
+        ${!hayComARS && !hayComUSD ? '<span class="badge badge-gray">—</span>' : ''}
+      </td>
       <td><div class="row-actions">
         <button class="icon-btn" onclick="editIngreso('${i.id}')">✎</button>
         <button class="icon-btn del" onclick="deleteIngreso('${i.id}')">✕</button>
       </div></td>
     </tr>`;
   });
-  const tn = rows.filter(r=>r.moneda!=='USD').reduce((s,r)=>s+calcDescuento(r).neto,0);
-  const td = rows.filter(r=>r.moneda!=='USD').reduce((s,r)=>s+calcDescuento(r).descuento,0);
-  const tu = rows.filter(r=>r.moneda==='USD').reduce((s,r)=>s+calcDescuento(r).neto,0);
-  const tud = rows.filter(r=>r.moneda==='USD').reduce((s,r)=>s+calcDescuento(r).descuento,0);
+  const tn = rows.filter(r=>r.moneda!=='USD').reduce((s,r)=>s+r.monto,0);
+  const tu = rows.filter(r=>r.moneda==='USD').reduce((s,r)=>s+r.monto,0);
   html += `</tbody><tfoot><tr style="border-top:2px solid var(--border2)">
-    <td colspan="3" style="padding:12px 14px;font-size:12px;font-weight:600;color:var(--text2)">TOTAL</td>
-    <td style="padding:12px 14px">
-      <span style="color:var(--red);font-family:'DM Mono',monospace;font-size:12px">-${fmtMoney(td)}</span>
-      ${tud>0?`<br><span style="color:var(--red);font-family:'DM Mono',monospace;font-size:11px">-${fmtMoney(tud,'USD')}</span>`:''}
-    </td>
+    <td colspan="2" style="padding:12px 14px;font-size:12px;font-weight:600;color:var(--text2)">TOTAL</td>
     <td style="padding:12px 14px">
       <span style="color:var(--green);font-family:'DM Mono',monospace;font-size:13px">${fmtMoney(tn)}</span>
       ${tu>0?`<br><span style="color:var(--accent);font-size:11px;font-family:'DM Mono',monospace">${fmtMoney(tu,'USD')}</span>`:''}
     </td>
-    <td></td></tr></tfoot></table>`;
+    <td></td><td></td></tr></tfoot></table>`;
   document.getElementById('tableIngresos').innerHTML = html;
 }
 
@@ -934,12 +920,12 @@ function renderGanancias() {
 
   // ── Totales ARS ──
   let tBrutoARS=0, tComARS=0;
-  ingARS.forEach(i => { const c=calcDescuento(i); tBrutoARS+=c.bruto; tComARS+=c.descuento; });
+  ingARS.forEach(i => { const c=getComision(i); tBrutoARS+=i.monto; tComARS+=c.ars; });
   const tDuenioARS = tBrutoARS - tComARS;
 
   // ── Totales USD ──
   let tBrutoUSD=0, tComUSD=0;
-  ingUSD.forEach(i => { const c=calcDescuento(i); tBrutoUSD+=c.bruto; tComUSD+=c.descuento; });
+  ingUSD.forEach(i => { const c=getComision(i); tBrutoUSD+=i.monto; tComUSD+=c.usd; });
   const tDuenioUSD = tBrutoUSD - tComUSD;
 
   // ── RESUMEN GLOBAL ──
@@ -1006,7 +992,7 @@ function renderGananciasMes(ingresos, moneda) {
   allMonths.forEach(mk => {
     const mesRows = ingresos.filter(i=>mesKey(i.fecha)===mk);
     let mBruto=0, mCom=0;
-    mesRows.forEach(i => { const c=calcDescuento(i); mBruto+=c.bruto; mCom+=c.descuento; });
+    mesRows.forEach(i => { const c=getComision(i); mBruto+=i.monto; mCom+=(moneda==='USD'?c.usd:c.ars); });
     const mDuenio = mBruto - mCom;
 
     html += `
@@ -1030,17 +1016,19 @@ function renderGananciasMes(ingresos, moneda) {
           <tbody>`;
 
     mesRows.forEach(i => {
-      const c = calcDescuento(i);
+      const c = getComision(i);
+      const comVal = moneda==='USD' ? c.usd : c.ars;
+      const duenio = i.monto - comVal;
       html += `<tr>
         <td class="td-date">${i.fecha}</td>
         <td class="td-motivo">${i.motivo}</td>
-        <td style="text-align:right;font-family:'DM Mono',monospace;font-size:13px;color:var(--green)">${fmtMoney(c.bruto,moneda)}</td>
+        <td style="text-align:right;font-family:'DM Mono',monospace;font-size:13px;color:var(--green)">${fmtMoney(i.monto,moneda)}</td>
         <td style="text-align:right">
-          ${c.descuento>0
-            ? `<span class="badge badge-purple">${fmtMoney(c.descuento,moneda)} <span style="opacity:.7;font-size:10px">${c.label}</span></span>`
+          ${comVal>0
+            ? `<span class="badge badge-purple">${fmtMoney(comVal,moneda)}</span>`
             : `<span class="badge badge-gray">—</span>`}
         </td>
-        <td style="text-align:right;font-family:'DM Mono',monospace;font-size:13px;color:var(--accent);font-weight:500">${fmtMoney(c.neto,moneda)}</td>
+        <td style="text-align:right;font-family:'DM Mono',monospace;font-size:13px;color:var(--accent);font-weight:500">${fmtMoney(duenio,moneda)}</td>
       </tr>`;
     });
 
@@ -1049,7 +1037,7 @@ function renderGananciasMes(ingresos, moneda) {
             <td colspan="2" style="padding:10px 14px;font-size:11px;font-weight:600;color:var(--text2)">TOTAL ${mesLabel(mk).toUpperCase()}</td>
             <td style="padding:10px 14px;text-align:right;font-family:'DM Mono',monospace;font-size:12px;color:var(--green)">${fmtMoney(mBruto,moneda)}</td>
             <td style="padding:10px 14px;text-align:right;font-family:'DM Mono',monospace;font-size:12px;color:var(--purple);font-weight:600">${fmtMoney(mCom,moneda)}</td>
-            <td style="padding:10px 14px;text-align:right;font-family:'DM Mono',monospace;font-size:13px;font-weight:600;color:var(--accent)">${fmtMoney(mDuenio,moneda)}</td>
+            <td style="padding:10px 14px;text-align:right;font-family:'DM Mono',monospace;font-size:13px;font-weight:600;color:var(--accent)">${fmtMoney(mBruto-mCom,moneda)}</td>
           </tr></tfoot>
         </table>
       </div>`;
@@ -1383,8 +1371,8 @@ function renderResumen() {
   let mesRows='';
   allMonths.forEach(mk => {
     const mI=ing.filter(i=>mesKey(i.fecha)===mk), mE=egr.filter(e=>mesKey(e.fecha)===mk);
-    const ars=mI.filter(i=>i.moneda!=='USD').reduce((s,i)=>s+calcDescuento(i).neto,0);
-    const usd=mI.filter(i=>i.moneda==='USD').reduce((s,i)=>s+calcDescuento(i).neto,0);
+    const ars=mI.filter(i=>i.moneda!=='USD').reduce((s,i)=>s+i.monto,0);
+    const usd=mI.filter(i=>i.moneda==='USD').reduce((s,i)=>s+i.monto,0);
     const et=mE.reduce((s,e)=>s+e.monto,0);
     const bal=ars-et; tA+=ars; tU+=usd; tE+=et;
     mesRows+=`<div class="mes-row">
@@ -1463,67 +1451,10 @@ async function toggleDeptStatus() {
   renderSidebar(); renderDeptView();
 }
 
-// ── INGRESO MODAL: DESCUENTO UI ──
-function toggleDescuento() {
-  const checked = document.getElementById('ingresoAplicarDesc').checked;
-  document.getElementById('descuentoPanel').style.display = checked ? 'block' : 'none';
-  if (!checked) document.getElementById('ingresoDescValor').value = '';
-  updatePreview();
-}
-
-function setTipoDesc(tipo) {
-  currentTipoDesc = tipo;
-  document.getElementById('tipoPorcentaje').classList.toggle('active', tipo==='porcentaje');
-  document.getElementById('tipoFijo').classList.toggle('active', tipo==='fijo');
-  const esUSD = document.getElementById('ingresoMoneda').value==='USD';
-  document.getElementById('descSuffix').textContent = tipo==='porcentaje' ? '%' : (esUSD ? 'USD' : 'ARS');
-  document.getElementById('ingresoDescValor').placeholder = tipo==='porcentaje' ? 'ej: 25' : (esUSD ? 'ej: 50' : 'ej: 5000');
-  document.getElementById('ingresoDescValor').value = '';
-  updatePreview();
-}
-
-function updatePreview() {
-  const aplicar = document.getElementById('ingresoAplicarDesc').checked;
-  const monto   = parseFloat(document.getElementById('ingresoMonto').value)||0;
-  const val     = parseFloat(document.getElementById('ingresoDescValor').value)||0;
-  const prev    = document.getElementById('previewDesc');
-  const esUSD   = document.getElementById('ingresoMoneda').value==='USD';
-  const sym     = esUSD ? 'U$D' : '$';
-
-  if (!aplicar || monto<=0 || val<=0) { prev.style.display='none'; return; }
-
-  let desc=0, label='';
-  if (currentTipoDesc==='porcentaje') {
-    if (val>100) { prev.innerHTML='<span style="color:var(--red)">El porcentaje no puede superar 100%</span>'; prev.style.display=''; return; }
-    desc  = monto*(val/100);
-    label = `${val}%`;
-  } else {
-    desc  = Math.min(val, monto);
-    label = `${sym} ${fmt(val, esUSD?2:0)} fijo`;
-  }
-  const neto = monto - desc;
-  prev.innerHTML = `Bruto: ${sym} ${fmt(monto, esUSD?2:0)} &nbsp;→&nbsp; Comisión (${label}): <span style="color:var(--red)">-${sym} ${fmt(desc, esUSD?2:0)}</span> &nbsp;→&nbsp; <strong style="color:var(--purple)">Neto: ${sym} ${fmt(neto, esUSD?2:0)}</strong>`;
-  prev.style.display = '';
-}
-
-function toggleMoneda() {
-  const esUSD = document.getElementById('ingresoMoneda').value==='USD';
-  // Actualizar sufijo del input de descuento según moneda
-  const sufijo = document.getElementById('descSuffix');
-  if (sufijo.textContent !== '%') {
-    // solo cambiar si está en modo monto fijo
-    sufijo.textContent = esUSD ? 'USD' : 'ARS';
-  }
-  // USD también puede tener descuento — no deshabilitar
-  document.getElementById('ingresoAplicarDesc').disabled = false;
-  document.getElementById('ingresoAplicarDesc').closest('.form-check').style.opacity = '1';
-}
-
 // ── INGRESO CRUD ──
 function openIngresoModal(id) {
   editingIngresoId = id||null;
   document.getElementById('ingresoModalTitle').textContent = id ? 'Editar ingreso' : 'Nuevo ingreso';
-  currentTipoDesc = 'porcentaje';
 
   if (id) {
     const i = cache.ingresos.find(x=>x.id===id);
@@ -1531,64 +1462,43 @@ function openIngresoModal(id) {
     document.getElementById('ingresoMotivo').value = i.motivo;
     document.getElementById('ingresoMonto').value  = i.monto;
     document.getElementById('ingresoMoneda').value = i.moneda||'ARS';
-
-    // Cargar descuento según formato
-    if (i.descuento_tipo) {
-      document.getElementById('ingresoAplicarDesc').checked = true;
-      currentTipoDesc = i.descuento_tipo;
-      document.getElementById('ingresoDescValor').value = i.descuento_valor||'';
-    } else if (i.aplicar25 && i.moneda!=='USD') {
-      // Viejo formato → mostrar como 25%
-      document.getElementById('ingresoAplicarDesc').checked = true;
-      currentTipoDesc = 'porcentaje';
-      document.getElementById('ingresoDescValor').value = 25;
-    } else {
-      document.getElementById('ingresoAplicarDesc').checked = false;
-      document.getElementById('ingresoDescValor').value = '';
-    }
+    // Cargar comisiones (nuevo formato o compatibilidad con viejo)
+    const c = getComision(i);
+    document.getElementById('comisionARS').value = c.ars > 0 ? c.ars : '';
+    document.getElementById('comisionUSD').value = c.usd > 0 ? c.usd : '';
   } else {
     document.getElementById('ingresoFecha').value   = todayStr();
     document.getElementById('ingresoMotivo').value  = '';
     document.getElementById('ingresoMonto').value   = '';
     document.getElementById('ingresoMoneda').value  = 'ARS';
-    document.getElementById('ingresoAplicarDesc').checked = false;
-    document.getElementById('ingresoDescValor').value = '';
+    document.getElementById('comisionARS').value    = '';
+    document.getElementById('comisionUSD').value    = '';
   }
-
-  // Sincronizar UI — el orden importa:
-  // 1. Primero limpiar disabled para que toggleDescuento pueda leer checked correctamente
-  // 2. Luego aplicar moneda (puede deshabilitar si es USD)
-  // 3. Luego mostrar/ocultar panel de descuento
-  document.getElementById('ingresoAplicarDesc').disabled = false;
-  document.getElementById('ingresoAplicarDesc').closest('.form-check').style.opacity = '1';
-  setTipoDesc(currentTipoDesc);
-  toggleMoneda();      // puede deshabilitar el check si es USD
-  toggleDescuento();   // lee el estado final del check y muestra/oculta el panel
   openModal('modalIngreso');
 }
 
 function editIngreso(id) { openIngresoModal(id); }
 
 async function saveIngreso() {
-  const fecha    = document.getElementById('ingresoFecha').value;
-  const motivo   = document.getElementById('ingresoMotivo').value.trim();
-  const monto    = parseFloat(document.getElementById('ingresoMonto').value);
-  const moneda   = document.getElementById('ingresoMoneda').value;
-  const aplicar  = document.getElementById('ingresoAplicarDesc').checked;
-  const descVal  = parseFloat(document.getElementById('ingresoDescValor').value)||0;
+  const fecha   = document.getElementById('ingresoFecha').value;
+  const motivo  = document.getElementById('ingresoMotivo').value.trim();
+  const monto   = parseFloat(document.getElementById('ingresoMonto').value);
+  const moneda  = document.getElementById('ingresoMoneda').value;
+  const comARS  = parseFloat(document.getElementById('comisionARS').value)||0;
+  const comUSD  = parseFloat(document.getElementById('comisionUSD').value)||0;
 
   if (!fecha||!motivo||isNaN(monto)||monto<=0) { alert('Completá fecha, motivo y monto'); return; }
-  if (aplicar && descVal<=0) { alert('Ingresá el valor del descuento'); return; }
-  if (aplicar && currentTipoDesc==='porcentaje' && descVal>100) { alert('El porcentaje no puede superar 100%'); return; }
 
   const btn = document.getElementById('saveIngresoBtn');
   btn.disabled=true; btn.textContent='Guardando...';
 
   const row = {
     fecha, motivo, monto, moneda,
-    aplicar25: false, // siempre false en nuevos registros
-    descuento_tipo:  aplicar ? currentTipoDesc : null,
-    descuento_valor: aplicar ? descVal : null,
+    aplicar25: false,
+    descuento_tipo: null,
+    descuento_valor: null,
+    comision_ars: comARS > 0 ? comARS : null,
+    comision_usd: comUSD > 0 ? comUSD : null,
   };
 
   let error;
@@ -1661,10 +1571,10 @@ function exportDept() {
   const dept=cache.departamentos.find(d=>d.id===currentDeptId);
   const ing=cache.ingresos.filter(i=>i.deptId===currentDeptId).sort((a,b)=>a.fecha.localeCompare(b.fecha));
   const egr=cache.egresos.filter(e=>e.deptId===currentDeptId).sort((a,b)=>a.fecha.localeCompare(b.fecha));
-  let csv=`INGRESOS - ${dept.nombre}\r\nFecha,Motivo,Monto,Moneda,Tipo Descuento,Valor Descuento,Monto Descontado,Neto\r\n`;
+  let csv=`INGRESOS - ${dept.nombre}\r\nFecha,Motivo,Monto,Moneda,Comision ARS,Comision USD\r\n`;
   ing.forEach(i=>{
-    const c=calcDescuento(i);
-    csv+=`${i.fecha},"${i.motivo}",${i.monto},${i.moneda},${c.descuento>0?c.label:'sin descuento'},${c.descuento>0?(i.descuento_tipo==='porcentaje'?i.descuento_valor+'%':i.descuento_valor):0},${c.descuento},${c.neto}\r\n`;
+    const c=getComision(i);
+    csv+=`${i.fecha},"${i.motivo}",${i.monto},${i.moneda},${c.ars>0?c.ars:0},${c.usd>0?c.usd:0}\r\n`;
   });
   csv+=`\r\nEGRESOS - ${dept.nombre}\r\nFecha,Motivo,Monto\r\n`;
   egr.forEach(e=>{ csv+=`${e.fecha},"${e.motivo}",${e.monto}\r\n`; });
