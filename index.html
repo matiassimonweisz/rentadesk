@@ -176,6 +176,9 @@ body{font-family:'Outfit',sans-serif;background:var(--bg);color:var(--text);min-
 }
 table { width:100%; border-collapse:collapse }
 thead th { padding:10px 14px; text-align:left; font-size:11px; text-transform:uppercase; letter-spacing:0.6px; color:var(--text3); border-bottom:1px solid var(--border); font-weight:500; white-space:nowrap }
+thead th.sortable { cursor:pointer; user-select:none; }
+thead th.sortable:hover { color:var(--text2); }
+thead th.sort-active { color:var(--accent); }
 thead th:last-child { text-align:right }
 tbody tr { transition:background 0.1s }
 tbody tr:hover { background:var(--bg3) }
@@ -412,6 +415,7 @@ tbody td:last-child { text-align:right }
               <span class="table-title">Ingresos</span>
               <div class="table-toolbar-right">
                 <select class="filter-select" id="filtroMesIngresos" onchange="renderIngresos()"><option value="">Todos los meses</option></select>
+                <button class="btn btn-ghost btn-sm" id="sortBtnIngresos" onclick="toggleSort('ingresos')">↓ Más reciente</button>
                 <button class="btn btn-primary btn-sm" onclick="openIngresoModal()">+ Ingreso</button>
               </div>
             </div>
@@ -424,6 +428,7 @@ tbody td:last-child { text-align:right }
               <span class="table-title">Egresos</span>
               <div class="table-toolbar-right">
                 <select class="filter-select" id="filtroMesEgresos" onchange="renderEgresos()"><option value="">Todos los meses</option></select>
+                <button class="btn btn-ghost btn-sm" id="sortBtnEgresos" onclick="toggleSort('egresos')">↓ Más reciente</button>
                 <button class="btn btn-primary btn-sm" onclick="openEgresoModal()">+ Egreso</button>
               </div>
             </div>
@@ -431,9 +436,20 @@ tbody td:last-child { text-align:right }
           </div>
         </div>
         <div id="panelGanancias" style="display:none">
+          <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:16px;gap:12px;flex-wrap:wrap">
+            <span style="font-size:14px;font-weight:600">Mis comisiones</span>
+            <div style="display:flex;gap:8px;align-items:center">
+              <select class="filter-select" id="filtroMesGanancias" onchange="renderGanancias()"><option value="">Todos los meses</option></select>
+              <button class="btn btn-ghost btn-sm" id="sortBtnGanancias" onclick="toggleSort('ganancias')">↓ Más reciente</button>
+            </div>
+          </div>
           <div id="gananciasContent"></div>
         </div>
         <div id="panelResumen" style="display:none">
+          <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:16px;gap:12px">
+            <span style="font-size:14px;font-weight:600">Resumen mensual</span>
+            <button class="btn btn-ghost btn-sm" id="sortBtnResumen" onclick="toggleSort('resumen')">↓ Más reciente</button>
+          </div>
           <div id="resumenContent"></div>
         </div>
       </div>
@@ -580,6 +596,9 @@ let currentUser   = null;
 let currentDeptId = null;
 let currentTab    = 'ingresos';
 let editingDeptId     = null;
+
+// Dirección de ordenamiento por panel: 'desc' = más reciente primero
+let sortDir = { ingresos: 'desc', egresos: 'desc', ganancias: 'desc', resumen: 'desc' };
 let editingIngresoId  = null;
 let editingEgresoId   = null;
 let cache = { departamentos: [], ingresos: [], egresos: [] };
@@ -819,11 +838,17 @@ function populateMesFiltros() {
   const egr = cache.egresos.filter(e=>e.deptId===currentDeptId);
   const mI  = [...new Set(ing.map(i=>mesKey(i.fecha)))].filter(Boolean).sort().reverse();
   const mE  = [...new Set(egr.map(e=>mesKey(e.fecha)))].filter(Boolean).sort().reverse();
-  const sI=document.getElementById('filtroMesIngresos'), sE=document.getElementById('filtroMesEgresos');
-  const vI=sI.value, vE=sE.value;
+  const mG  = mI; // comisiones usan mismos meses que ingresos
+  const sI=document.getElementById('filtroMesIngresos');
+  const sE=document.getElementById('filtroMesEgresos');
+  const sG=document.getElementById('filtroMesGanancias');
+  const vI=sI.value, vE=sE.value, vG=sG?sG.value:'';
   sI.innerHTML = '<option value="">Todos los meses</option>'+mI.map(m=>`<option value="${m}">${mesLabel(m)}</option>`).join('');
   sE.innerHTML = '<option value="">Todos los meses</option>'+mE.map(m=>`<option value="${m}">${mesLabel(m)}</option>`).join('');
-  if(vI) sI.value=vI; if(vE) sE.value=vE;
+  if (sG) sG.innerHTML = '<option value="">Todos los meses</option>'+mG.map(m=>`<option value="${m}">${mesLabel(m)}</option>`).join('');
+  if(vI) sI.value=vI;
+  if(vE) sE.value=vE;
+  if(sG && vG) sG.value=vG;
 }
 
 function switchTab(tab) {
@@ -836,16 +861,44 @@ function switchTab(tab) {
   if (tab==='ganancias') renderGanancias();
 }
 
+// ── ORDENAMIENTO ──
+function toggleSort(panel) {
+  sortDir[panel] = sortDir[panel] === 'desc' ? 'asc' : 'desc';
+  const btn = document.getElementById('sortBtn' + panel.charAt(0).toUpperCase() + panel.slice(1));
+  if (btn) btn.textContent = sortDir[panel] === 'desc' ? '↓ Más reciente' : '↑ Más antiguo';
+  if (panel==='ingresos')  renderIngresos();
+  if (panel==='egresos')   renderEgresos();
+  if (panel==='ganancias') renderGanancias();
+  if (panel==='resumen')   renderResumen();
+}
+
+function sortByFecha(rows, panel) {
+  const asc = sortDir[panel] === 'asc';
+  return [...rows].sort((a,b) => {
+    const cmp = a.fecha.localeCompare(b.fecha);
+    return asc ? cmp : -cmp;
+  });
+}
+
 // ── RENDER INGRESOS ──
 function renderIngresos() {
   const filtro = document.getElementById('filtroMesIngresos').value;
   let rows = cache.ingresos.filter(i=>i.deptId===currentDeptId);
   if (filtro) rows = rows.filter(i=>mesKey(i.fecha)===filtro);
+  rows = sortByFecha(rows, 'ingresos');
+  // Sync botón sort en toolbar
+  const sortBtn = document.getElementById('sortBtnIngresos');
+  if (sortBtn) sortBtn.textContent = sortDir.ingresos === 'desc' ? '↓ Más reciente' : '↑ Más antiguo';
   if (rows.length===0) {
     document.getElementById('tableIngresos').innerHTML = `<div class="empty-state"><div class="empty-icon">📥</div><div style="margin-bottom:16px">Sin ingresos registrados</div><button class="btn btn-primary btn-sm" onclick="openIngresoModal()">+ Agregar ingreso</button></div>`;
     return;
   }
-  let html = `<table><thead><tr><th>Fecha</th><th>Motivo</th><th>Monto</th><th>Comisión admin</th><th></th></tr></thead><tbody>`;
+  const dir = sortDir.ingresos;
+  const ico = dir==='desc' ? '↓' : '↑';
+  let html = `<table><thead><tr>
+    <th class="sortable sort-active" onclick="toggleSort('ingresos')">${ico} Fecha</th>
+    <th>Motivo</th><th>Monto</th><th>Comisión admin</th><th></th>
+  </tr></thead><tbody>`;
   rows.forEach(i => {
     const c = getComision(i);
     const hayComARS = c.ars > 0;
@@ -882,11 +935,19 @@ function renderEgresos() {
   const filtro = document.getElementById('filtroMesEgresos').value;
   let rows = cache.egresos.filter(e=>e.deptId===currentDeptId);
   if (filtro) rows = rows.filter(e=>mesKey(e.fecha)===filtro);
+  rows = sortByFecha(rows, 'egresos');
+  const sortBtn = document.getElementById('sortBtnEgresos');
+  if (sortBtn) sortBtn.textContent = sortDir.egresos === 'desc' ? '↓ Más reciente' : '↑ Más antiguo';
   if (rows.length===0) {
     document.getElementById('tableEgresos').innerHTML = `<div class="empty-state"><div class="empty-icon">📤</div><div style="margin-bottom:16px">Sin egresos registrados</div><button class="btn btn-primary btn-sm" onclick="openEgresoModal()">+ Agregar egreso</button></div>`;
     return;
   }
-  let html = `<table><thead><tr><th>Fecha</th><th>Motivo</th><th>Monto</th><th></th></tr></thead><tbody>`;
+  const dir = sortDir.egresos;
+  const ico = dir==='desc' ? '↓' : '↑';
+  let html = `<table><thead><tr>
+    <th class="sortable sort-active" onclick="toggleSort('egresos')">${ico} Fecha</th>
+    <th>Motivo</th><th>Monto</th><th></th>
+  </tr></thead><tbody>`;
   rows.forEach(e => {
     html += `<tr>
       <td class="td-date">${e.fecha}</td>
@@ -909,8 +970,9 @@ function renderEgresos() {
 // ── RENDER MIS COMISIONES (lo que gana el admin) ──
 function renderGanancias() {
   const dept  = cache.departamentos.find(d => d.id===currentDeptId);
-  const ingARS = cache.ingresos.filter(i => i.deptId===currentDeptId && i.moneda!=='USD');
-  const ingUSD = cache.ingresos.filter(i => i.deptId===currentDeptId && i.moneda==='USD');
+  const filtroG = document.getElementById('filtroMesGanancias') ? document.getElementById('filtroMesGanancias').value : '';
+  const ingARS = cache.ingresos.filter(i => i.deptId===currentDeptId && i.moneda!=='USD' && (!filtroG || mesKey(i.fecha)===filtroG));
+  const ingUSD = cache.ingresos.filter(i => i.deptId===currentDeptId && i.moneda==='USD'  && (!filtroG || mesKey(i.fecha)===filtroG));
   const hayDatos = ingARS.length>0 || ingUSD.length>0;
 
   if (!hayDatos) {
@@ -975,7 +1037,11 @@ function renderGanancias() {
 
 // Helper: genera las tablas mes por mes para una moneda dada
 function renderGananciasMes(ingresos, moneda) {
-  const allMonths = [...new Set(ingresos.map(i=>mesKey(i.fecha)))].filter(Boolean).sort().reverse();
+  const asc = sortDir.ganancias === 'asc';
+  const ico = asc ? '↑' : '↓';
+  // Ordenar meses
+  const allMonths = [...new Set(ingresos.map(i=>mesKey(i.fecha)))].filter(Boolean).sort();
+  if (asc === false) allMonths.reverse();
   let html = '';
 
   allMonths.forEach(mk => {
@@ -994,14 +1060,19 @@ function renderGananciasMes(ingresos, moneda) {
         </div>
         <table>
           <thead><tr>
-            <th>Fecha</th>
+            <th class="sortable sort-active" onclick="toggleSort('ganancias')">${ico} Fecha</th>
             <th>Motivo</th>
             <th style="text-align:right">Bruto</th>
             <th style="text-align:right">Mi comisión</th>
           </tr></thead>
           <tbody>`;
 
-    mesRows.forEach(i => {
+    // Ordenar filas dentro del mes
+    const sortedRows = [...mesRows].sort((a,b) => {
+      const cmp = a.fecha.localeCompare(b.fecha);
+      return asc ? cmp : -cmp;
+    });
+    sortedRows.forEach(i => {
       const c = getComision(i);
       const comVal = moneda==='USD' ? c.usd : c.ars;
       html += `<tr>
@@ -1345,21 +1416,39 @@ function generarInvoicePDF() {
 function renderResumen() {
   const ing = cache.ingresos.filter(i=>i.deptId===currentDeptId);
   const egr = cache.egresos.filter(e=>e.deptId===currentDeptId);
-  const allMonths = [...new Set([...ing.map(i=>mesKey(i.fecha)),...egr.map(e=>mesKey(e.fecha))])].filter(Boolean).sort();
+  const asc = sortDir.resumen === 'asc';
+  // Sync botón
+  const sortBtn = document.getElementById('sortBtnResumen');
+  if (sortBtn) sortBtn.textContent = asc ? '↑ Más antiguo' : '↓ Más reciente';
+
+  let allMonths = [...new Set([...ing.map(i=>mesKey(i.fecha)),...egr.map(e=>mesKey(e.fecha))])].filter(Boolean).sort();
+  if (!asc) allMonths.reverse();
+
   if (allMonths.length===0) {
     document.getElementById('resumenContent').innerHTML = `<div class="empty-state"><div class="empty-icon">📊</div><div>Agregá ingresos y egresos para ver el resumen</div></div>`;
     return;
   }
   let tA=0,tU=0,tE=0;
   let mesRows='';
+  // Para totales siempre sumamos todo sin importar el orden
+  [...new Set([...ing.map(i=>mesKey(i.fecha)),...egr.map(e=>mesKey(e.fecha))])].filter(Boolean).forEach(mk => {
+    const mI=ing.filter(i=>mesKey(i.fecha)===mk), mE=egr.filter(e=>mesKey(e.fecha)===mk);
+    tA+=mI.filter(i=>i.moneda!=='USD').reduce((s,i)=>s+i.monto,0);
+    tU+=mI.filter(i=>i.moneda==='USD').reduce((s,i)=>s+i.monto,0);
+    tE+=mE.reduce((s,e)=>s+e.monto,0);
+  });
+  const ico = asc ? '↑' : '↓';
   allMonths.forEach(mk => {
     const mI=ing.filter(i=>mesKey(i.fecha)===mk), mE=egr.filter(e=>mesKey(e.fecha)===mk);
     const ars=mI.filter(i=>i.moneda!=='USD').reduce((s,i)=>s+i.monto,0);
     const usd=mI.filter(i=>i.moneda==='USD').reduce((s,i)=>s+i.monto,0);
     const et=mE.reduce((s,e)=>s+e.monto,0);
-    const bal=ars-et; tA+=ars; tU+=usd; tE+=et;
+    const bal=ars-et;
     mesRows+=`<div class="mes-row">
-      <div>${mesLabel(mk)}</div>
+      <div style="display:flex;align-items:center;gap:6px">
+        <span style="font-size:11px;color:var(--text3)">${ico}</span>
+        <span>${mesLabel(mk)}</span>
+      </div>
       <div class="mes-values">
         <span class="mes-ing">${fmtMoney(ars)}</span>
         ${usd>0?`<span class="badge badge-gold" style="font-size:10px">${fmtMoney(usd,'USD')}</span>`:''}
@@ -1371,13 +1460,16 @@ function renderResumen() {
   const tb=tA-tE;
   document.getElementById('resumenContent').innerHTML=`
     <div class="stats-grid" style="margin-bottom:20px">
-      <div class="stat-card green"><div class="stat-label">Ingresos netos ARS</div><div class="stat-value green">${fmtMoney(tA)}</div></div>
+      <div class="stat-card green"><div class="stat-label">Ingresos ARS</div><div class="stat-value green">${fmtMoney(tA)}</div></div>
       <div class="stat-card gold"><div class="stat-label">Ingresos USD</div><div class="stat-value gold">${fmtMoney(tU,'USD')}</div></div>
       <div class="stat-card red"><div class="stat-label">Egresos totales</div><div class="stat-value red">${fmtMoney(tE)}</div></div>
       <div class="stat-card ${tb>=0?'green':'red'}"><div class="stat-label">Balance total</div><div class="stat-value ${tb>=0?'green':'red'}">${fmtMoney(tb)}</div></div>
     </div>
     <div class="table-container">
-      <div class="table-toolbar"><span class="table-title">Por mes</span><span style="font-size:11px;color:var(--text3)">Ing. neto · USD · Egresos · Balance</span></div>
+      <div class="table-toolbar">
+        <span class="table-title">Por mes</span>
+        <span style="font-size:11px;color:var(--text3)">Ing. · USD · Egresos · Balance</span>
+      </div>
       <div style="padding:0 16px 8px">${mesRows}</div>
     </div>`;
 }
