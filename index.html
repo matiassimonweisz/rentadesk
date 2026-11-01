@@ -57,6 +57,9 @@ body{font-family:'Outfit',sans-serif;background:var(--bg);color:var(--text);min-
   font-size:13px; color:var(--red);
   margin-bottom:16px; display:none;
 }
+.auth-link { background:none; border:none; color:var(--text3); font-family:'Outfit',sans-serif; font-size:12px; cursor:pointer; padding:4px 8px; transition:color 0.15s }
+.auth-link:hover { color:var(--accent) }
+.auth-hint { font-size:13px; color:var(--text3); line-height:1.6; margin-bottom:16px }
 .auth-success {
   background:var(--green-bg); border:1px solid rgba(111,207,151,0.2);
   border-radius:var(--radius); padding:10px 14px;
@@ -334,6 +337,9 @@ tbody td:last-child { text-align:right }
         <input class="form-input" type="password" id="loginPass" placeholder="••••••••" onkeydown="if(event.key==='Enter')doLogin()" />
       </div>
       <button class="btn btn-primary" style="width:100%;justify-content:center;margin-top:8px" id="btnLogin" onclick="doLogin()">Entrar</button>
+      <div style="text-align:center;margin-top:14px">
+        <button class="auth-link" onclick="setAuthTab('forgot')">¿Olvidaste tu contraseña?</button>
+      </div>
     </div>
     <div id="formRegister" style="display:none">
       <div class="form-group">
@@ -350,6 +356,33 @@ tbody td:last-child { text-align:right }
       </div>
       <button class="btn btn-primary" style="width:100%;justify-content:center;margin-top:8px" id="btnRegister" onclick="doRegister()">Crear cuenta</button>
     </div>
+
+    <!-- RECUPERAR CONTRASEÑA: pedir enlace -->
+    <div id="formForgot" style="display:none">
+      <p class="auth-hint">Ingresá tu email y te enviamos un enlace para crear una contraseña nueva.</p>
+      <div class="form-group">
+        <label class="form-label">Email</label>
+        <input class="form-input" type="email" id="forgotEmail" placeholder="tu@email.com" onkeydown="if(event.key==='Enter')doForgot()" />
+      </div>
+      <button class="btn btn-primary" style="width:100%;justify-content:center;margin-top:8px" id="btnForgot" onclick="doForgot()">Enviar enlace</button>
+      <div style="text-align:center;margin-top:14px">
+        <button class="auth-link" onclick="setAuthTab('login')">← Volver a iniciar sesión</button>
+      </div>
+    </div>
+
+    <!-- RECUPERAR CONTRASEÑA: elegir la nueva (se llega desde el enlace del mail) -->
+    <div id="formReset" style="display:none">
+      <p class="auth-hint">Elegí tu nueva contraseña.</p>
+      <div class="form-group">
+        <label class="form-label">Nueva contraseña</label>
+        <input class="form-input" type="password" id="resetPass" placeholder="Mínimo 6 caracteres" />
+      </div>
+      <div class="form-group">
+        <label class="form-label">Confirmar contraseña</label>
+        <input class="form-input" type="password" id="resetPass2" placeholder="Repetí la contraseña" onkeydown="if(event.key==='Enter')doReset()" />
+      </div>
+      <button class="btn btn-primary" style="width:100%;justify-content:center;margin-top:8px" id="btnReset" onclick="doReset()">Guardar contraseña</button>
+    </div>
   </div>
 </div>
 
@@ -365,6 +398,7 @@ tbody td:last-child { text-align:right }
         <div class="user-pill">
           <div class="user-pill-dot"></div>
           <div class="user-pill-email" id="userEmail">—</div>
+          <button class="logout-btn" onclick="openPasswordModal()" title="Cambiar contraseña">🔑</button>
           <button class="logout-btn" onclick="doLogout()" title="Cerrar sesión">⏻</button>
         </div>
       </div>
@@ -549,6 +583,26 @@ tbody td:last-child { text-align:right }
   </div>
 </div>
 
+<!-- MODAL CAMBIAR CONTRASEÑA -->
+<div class="modal-overlay" id="modalPassword" onclick="closeModalIf(event,'modalPassword')">
+  <div class="modal">
+    <div class="modal-title">🔑 Cambiar contraseña</div>
+    <div class="auth-error" id="pwError"></div>
+    <div class="form-group">
+      <label class="form-label">Nueva contraseña</label>
+      <input class="form-input" type="password" id="pwNueva" placeholder="Mínimo 6 caracteres" />
+    </div>
+    <div class="form-group">
+      <label class="form-label">Confirmar contraseña</label>
+      <input class="form-input" type="password" id="pwNueva2" placeholder="Repetí la contraseña" onkeydown="if(event.key==='Enter')savePassword()" />
+    </div>
+    <div class="modal-actions">
+      <button class="btn btn-ghost" onclick="closeModal('modalPassword')">Cancelar</button>
+      <button class="btn btn-primary" id="btnSavePw" onclick="savePassword()">Guardar</button>
+    </div>
+  </div>
+</div>
+
 <!-- MODAL INVOICE -->
 <div class="modal-overlay" id="modalInvoice" onclick="closeModalIf(event,'modalInvoice')">
   <div class="modal">
@@ -587,6 +641,12 @@ tbody td:last-child { text-align:right }
 const SUPABASE_URL  = 'https://vohgsunfetqxuzvhonct.supabase.co';
 const SUPABASE_ANON = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InZvaGdzdW5mZXRxeHV6dmhvbmN0Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzQ2MzU1NzUsImV4cCI6MjA5MDIxMTU3NX0.txRJ0P3Mc0AZf3yD0qEFYfoZU3pxct3wtOSnSvS1smE';
 // ═══════════════════════════════════════════════════
+
+// Detectar si se llegó desde el enlace del mail de recuperación.
+// Tiene que ir ANTES de createClient, porque supabase-js limpia la URL al procesarla.
+const _urlParams = window.location.hash + '&' + window.location.search;
+let recoveryMode = /type=recovery/.test(_urlParams);
+const linkVencido = /error_code=otp_expired|error=access_denied/.test(_urlParams);
 
 const { createClient } = supabase;
 const sb = createClient(SUPABASE_URL, SUPABASE_ANON);
@@ -637,9 +697,23 @@ function getComision(ingreso) {
 function setAuthTab(tab) {
   document.getElementById('tabLogin').classList.toggle('active', tab==='login');
   document.getElementById('tabRegister').classList.toggle('active', tab==='register');
-  document.getElementById('formLogin').style.display    = tab==='login'?'':'none';
-  document.getElementById('formRegister').style.display = tab==='register'?'':'none';
+  ['login','register','forgot','reset'].forEach(t => {
+    document.getElementById('form' + t.charAt(0).toUpperCase() + t.slice(1)).style.display = t===tab ? '' : 'none';
+  });
+  // En "olvidé" y "nueva contraseña" no tiene sentido mostrar las pestañas
+  document.querySelector('.auth-tabs').style.display = (tab==='forgot' || tab==='reset') ? 'none' : '';
   clearAuthMessages();
+}
+
+// Traduce los errores más comunes de Supabase Auth
+function errAuth(msg) {
+  if (!msg) return 'Ocurrió un error. Probá de nuevo.';
+  if (/different from the old password/i.test(msg)) return 'La nueva contraseña tiene que ser distinta a la anterior';
+  if (/at least \d+ characters/i.test(msg))        return 'La contraseña debe tener al menos 6 caracteres';
+  if (/rate limit|only request this after|too many/i.test(msg)) return 'Pediste demasiados mails seguidos. Esperá unos minutos y probá de nuevo';
+  if (/session.*missing|not authenticated/i.test(msg)) return 'La sesión venció. Pedí un enlace nuevo';
+  if (/reauthentication/i.test(msg))                return 'Por seguridad, cerrá sesión, volvé a entrar e intentá de nuevo';
+  return msg;
 }
 function showAuthError(msg)   { const el=document.getElementById('authError');   el.textContent=msg; el.style.display=''; document.getElementById('authSuccess').style.display='none'; }
 function showAuthSuccess(msg) { const el=document.getElementById('authSuccess'); el.textContent=msg; el.style.display=''; document.getElementById('authError').style.display='none'; }
@@ -669,6 +743,76 @@ async function doRegister() {
   btn.disabled=false; btn.textContent='Crear cuenta';
   if (error) showAuthError(error.message);
   else showAuthSuccess('Cuenta creada. Revisá tu email para confirmar.');
+}
+
+// ── RECUPERAR CONTRASEÑA ──
+async function doForgot() {
+  const email = document.getElementById('forgotEmail').value.trim();
+  if (!email) { showAuthError('Ingresá tu email'); return; }
+  const btn = document.getElementById('btnForgot');
+  btn.disabled=true; btn.textContent='Enviando...';
+  const { error } = await sb.auth.resetPasswordForEmail(email, {
+    redirectTo: window.location.origin + window.location.pathname
+  });
+  btn.disabled=false; btn.textContent='Enviar enlace';
+  if (error) { showAuthError(errAuth(error.message)); return; }
+  // Mensaje genérico a propósito: no revela si el email está registrado o no
+  showAuthSuccess('Si el email está registrado, te enviamos un enlace para crear una contraseña nueva. Revisá también la carpeta de spam.');
+}
+
+async function doReset() {
+  const pass  = document.getElementById('resetPass').value;
+  const pass2 = document.getElementById('resetPass2').value;
+  if (!pass)          { showAuthError('Ingresá la nueva contraseña'); return; }
+  if (pass.length<6)  { showAuthError('La contraseña debe tener al menos 6 caracteres'); return; }
+  if (pass!==pass2)   { showAuthError('Las contraseñas no coinciden'); return; }
+  const btn = document.getElementById('btnReset');
+  btn.disabled=true; btn.textContent='Guardando...';
+  const { error } = await sb.auth.updateUser({ password: pass });
+  btn.disabled=false; btn.textContent='Guardar contraseña';
+  if (error) { showAuthError(errAuth(error.message)); return; }
+  // Listo: cerramos la sesión de recuperación y pedimos que entre con la nueva
+  recoveryMode = false;
+  history.replaceState(null, '', window.location.pathname);
+  await sb.auth.signOut();
+  document.getElementById('resetPass').value = '';
+  document.getElementById('resetPass2').value = '';
+  setAuthTab('login');
+  showAuthSuccess('Contraseña actualizada. Ya podés iniciar sesión con la nueva.');
+  document.getElementById('screenApp').style.display  = 'none';
+  document.getElementById('screenAuth').style.display = 'flex';
+}
+
+function mostrarFormReset() {
+  document.getElementById('screenApp').style.display  = 'none';
+  document.getElementById('screenAuth').style.display = 'flex';
+  setAuthTab('reset');
+}
+
+// ── CAMBIAR CONTRASEÑA (usuario con sesión iniciada) ──
+function openPasswordModal() {
+  document.getElementById('pwNueva').value  = '';
+  document.getElementById('pwNueva2').value = '';
+  document.getElementById('pwError').style.display = 'none';
+  openModal('modalPassword');
+  closeSidebarMobile();
+}
+
+async function savePassword() {
+  const err   = document.getElementById('pwError');
+  const pass  = document.getElementById('pwNueva').value;
+  const pass2 = document.getElementById('pwNueva2').value;
+  const showErr = m => { err.textContent = m; err.style.display = ''; };
+  if (!pass)         { showErr('Ingresá la nueva contraseña'); return; }
+  if (pass.length<6) { showErr('La contraseña debe tener al menos 6 caracteres'); return; }
+  if (pass!==pass2)  { showErr('Las contraseñas no coinciden'); return; }
+  const btn = document.getElementById('btnSavePw');
+  btn.disabled=true; btn.textContent='Guardando...';
+  const { error } = await sb.auth.updateUser({ password: pass });
+  btn.disabled=false; btn.textContent='Guardar';
+  if (error) { showErr(errAuth(error.message)); return; }
+  closeModal('modalPassword');
+  alert('Contraseña actualizada correctamente');
 }
 
 async function doLogout() {
@@ -1676,7 +1820,11 @@ async function init() {
 
   try {
     const { data: { session } } = await sb.auth.getSession();
-    if (session && !started) {
+    if (recoveryMode) {
+      // Llegó desde el mail de recuperación: mostrar "nueva contraseña", no entrar a la app
+      clearTimeout(safetyTimeout);
+      mostrarFormReset();
+    } else if (session && !started) {
       started = true;
       clearTimeout(safetyTimeout);
       await enterApp(session.user);
@@ -1685,8 +1833,23 @@ async function init() {
       document.getElementById('screenAuth').style.display = 'flex';
     }
 
+    // Enlace vencido o ya usado
+    if (linkVencido) {
+      clearTimeout(safetyTimeout);
+      history.replaceState(null, '', window.location.pathname);
+      document.getElementById('screenAuth').style.display = 'flex';
+      setAuthTab('forgot');
+      showAuthError('El enlace venció o ya fue usado. Pedí uno nuevo.');
+    }
+
     sb.auth.onAuthStateChange(async (event, session) => {
-      if (event==='SIGNED_IN' && !started) {
+      if (event==='PASSWORD_RECOVERY') {
+        recoveryMode = true;
+        clearTimeout(safetyTimeout);
+        mostrarFormReset();
+        return;
+      }
+      if (event==='SIGNED_IN' && !started && !recoveryMode) {
         started = true;
         clearTimeout(safetyTimeout);
         await enterApp(session.user);
