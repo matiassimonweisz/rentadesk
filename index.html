@@ -715,8 +715,8 @@ function errAuth(msg) {
   if (/reauthentication/i.test(msg))                return 'Por seguridad, cerrá sesión, volvé a entrar e intentá de nuevo';
   return msg;
 }
-function showAuthError(msg)   { const el=document.getElementById('authError');   el.textContent=msg; el.style.display=''; document.getElementById('authSuccess').style.display='none'; }
-function showAuthSuccess(msg) { const el=document.getElementById('authSuccess'); el.textContent=msg; el.style.display=''; document.getElementById('authError').style.display='none'; }
+function showAuthError(msg)   { const el=document.getElementById('authError');   el.textContent=msg; el.style.display='block'; document.getElementById('authSuccess').style.display='none'; }
+function showAuthSuccess(msg) { const el=document.getElementById('authSuccess'); el.textContent=msg; el.style.display='block'; document.getElementById('authError').style.display='none'; }
 function clearAuthMessages()  { document.getElementById('authError').style.display='none'; document.getElementById('authSuccess').style.display='none'; }
 
 async function doLogin() {
@@ -802,7 +802,7 @@ async function savePassword() {
   const err   = document.getElementById('pwError');
   const pass  = document.getElementById('pwNueva').value;
   const pass2 = document.getElementById('pwNueva2').value;
-  const showErr = m => { err.textContent = m; err.style.display = ''; };
+  const showErr = m => { err.textContent = m; err.style.display = 'block'; };
   if (!pass)         { showErr('Ingresá la nueva contraseña'); return; }
   if (pass.length<6) { showErr('La contraseña debe tener al menos 6 caracteres'); return; }
   if (pass!==pass2)  { showErr('Las contraseñas no coinciden'); return; }
